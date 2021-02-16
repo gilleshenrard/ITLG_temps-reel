@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include "runner.h"
@@ -12,7 +11,7 @@
 int main(int argc, char* argv[])
 {
 	pthread_t thread[NB_THREADS];
-	int i;
+	uint16_t i;
 	int ret;
 	
     //create all the runner threads

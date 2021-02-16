@@ -13,10 +13,10 @@
 /*  P : Execute the behaviour of a runner                                               */
 /*  O : /                                                                               */
 /****************************************************************************************/
-#ifdef __GNUC__
-# pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
 void *runner_handler(void *num)
 {
+	uint16_t thNum = *((int*)num);
+
+	printf("Thread %hd starts the step 1\n", thNum);
 	pthread_exit(NULL);
 }
