@@ -16,6 +16,6 @@ typedef struct{
 
 int barrier_alloc(barrier_t* bar, const uint16_t nb);
 int barrier_free(barrier_t* bar);
-int barrier_sync();
+int barrier_sync(barrier_t* bar);
 
 #endif

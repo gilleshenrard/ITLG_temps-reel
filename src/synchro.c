@@ -78,6 +78,9 @@ int barrier_free(barrier_t* bar){
 /*  O : 0 if ok                                                                         */
 /*     -1 otherwise                                                                     */
 /****************************************************************************************/
-int barrier_sync(){
+#ifdef __GNUC__
+# pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+int barrier_sync(barrier_t* bar){
     return 0;
 }
