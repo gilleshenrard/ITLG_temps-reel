@@ -13,31 +13,39 @@
 #include <unistd.h>
 #include "runner.h"
 
-#define NB_THREADS 5
-#define NB_TURNS 3
-
-int init_runners(runner_t** array, const uint16_t nbrun, const uint16_t nbturns);
+int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, const uint16_t nbturns);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 int main(int argc, char* argv[])
 {
-	pthread_t thread[NB_THREADS];
-	uint16_t i;
+	pthread_t* threads;
+	uint16_t i, nbrun, nblaps;
 	int ret;
 	runner_t* runners_array = NULL;
 
+	//check if the amount of runners and laps to run have been provided as program arguments
+	if(argc != 3){
+		fprintf(stderr, "usage : bin/runners nb_runners nb_laps");
+		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		nbrun = atoi(argv[1]);
+		nblaps = atoi(argv[2]);
+	}
+
 	//initialise the runners
-	if (init_runners(&runners_array, NB_THREADS, NB_TURNS) < 0)
+	if (init_runners(&runners_array, &threads, nbrun, nblaps) < 0)
 		exit(EXIT_FAILURE);
 
 	//initialise time randimisation
 	srand(time(NULL));
 	
     //create all the runner threads
-    for (i = 0; i < NB_THREADS; i++){
-		ret = pthread_create(&thread[i], NULL, runner_handler, (void*)(&runners_array[i]));
+    for (i = 0; i < nbrun; i++){
+		ret = pthread_create(&threads[i], NULL, runner_handler, (void*)(&runners_array[i]));
 		if (ret){
 			fprintf(stderr, "pthread_create : %s", strerror(ret));
 			exit(EXIT_FAILURE);
@@ -45,8 +53,8 @@ int main(int argc, char* argv[])
 	}
 		
     //wait for all the runner threads to finish
-    for (i = 0; i < NB_THREADS; i++)
-		pthread_join(thread[i], NULL);
+    for (i = 0; i < nbrun; i++)
+		pthread_join(threads[i], NULL);
 	
     exit(EXIT_SUCCESS);
 }
@@ -60,7 +68,7 @@ int main(int argc, char* argv[])
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_runners(runner_t** array, const uint16_t nbrun, const uint16_t nbturns){
+int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, const uint16_t nbturns){
 	barrier_t* bar_tmp = NULL;
 
 	//allocate the barrier
@@ -74,6 +82,15 @@ int init_runners(runner_t** array, const uint16_t nbrun, const uint16_t nbturns)
 	if(!*array){
 		fprintf(stderr, "init_runners : error while allocating the runners\n");
 		barrier_free(bar_tmp);
+		return -1;
+	}
+
+	//allocate the threads
+	*threads = (pthread_t*)calloc(nbrun, sizeof(pthread_t));
+	if(!*threads){
+		fprintf(stderr, "init_runners : error while allocating the threads\n");
+		barrier_free(bar_tmp);
+		free(*array);
 		return -1;
 	}
 
