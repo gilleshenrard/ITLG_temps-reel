@@ -11,7 +11,9 @@
 /****************************************************************************************/
 /*  I : runner who is executing the procedure                                           */
 /*  P : Execute the behaviour of a runner :                                             */
-/*			- wait for a random timespan between 2000 and 5000 us						*/  
+/*			- wait for a random timespan between 2000 and 5000 us						*/
+/*			- wait for all the other runners at the barrier								*/
+/*			- loop until all laps have been run											*/  
 /*  O : /                                                                               */
 /****************************************************************************************/
 /*	WARNING : srand() must already have been called beforehand							*/
@@ -23,7 +25,7 @@ void *runner_handler(void *run)
 
 	for(uint16_t i = 0 ; i < runner->nbTurns ; i++){
 		//sleep for a random amount of usec
-		printf("Thread N%hd starts the step %hd\n", runner->threadNum, i + 1);
+		printf("Thread N%02hd starts the step %hd\n", runner->threadNum, i + 1);
 		waittime = 2000 + (rand() % 3000);
 		usleep(waittime);
 		
@@ -36,13 +38,12 @@ void *runner_handler(void *run)
 
 /****************************************************************************************/
 /*  I : runner who is reaching the barrier	                                            */
-/*  P : Execute the behaviour of a runner :                                             */
-/*			- wait for a random timespan between 2000 and 5000 us						*/  
+/*  P : Notify that the runners has reached the barrier									*/  
 /*  O : /                                                                               */
 /****************************************************************************************/
 int print_barrier(void* run){
 	runner_t* runner = (runner_t*)run;
 
-	printf("Thread N%hd reaches barrier\n", runner->threadNum);
+	printf("Thread N%02hd reaches barrier\n", runner->threadNum);
 	return 0;
 }
