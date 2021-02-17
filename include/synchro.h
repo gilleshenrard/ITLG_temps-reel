@@ -5,7 +5,6 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <stdio.h>
 
 typedef struct{
     pthread_mutex_t mutex;          //mutex used internally to protect the counters manipulations
