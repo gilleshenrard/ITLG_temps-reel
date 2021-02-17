@@ -14,15 +14,16 @@
 #include "runner.h"
 
 int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, const uint16_t nbturns);
+int free_runners(runner_t* array, pthread_t* threads);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 int main(int argc, char* argv[])
 {
-	pthread_t* threads;
-	uint16_t i, nbrun, nblaps;
-	int ret;
+	pthread_t* threads = NULL;
+	uint16_t i = 0, nbrun = 0, nblaps = 0;
+	int ret = 0;
 	runner_t* runners_array = NULL;
 
 	//check if the amount of runners and laps to run have been provided as program arguments
@@ -47,7 +48,8 @@ int main(int argc, char* argv[])
     for (i = 0; i < nbrun; i++){
 		ret = pthread_create(&threads[i], NULL, runner_handler, (void*)(&runners_array[i]));
 		if (ret){
-			fprintf(stderr, "pthread_create : %s", strerror(ret));
+			fprintf(stderr, "main : %s", strerror(ret));
+			free_runners(runners_array, threads);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -55,6 +57,8 @@ int main(int argc, char* argv[])
     //wait for all the runner threads to finish
     for (i = 0; i < nbrun; i++)
 		pthread_join(threads[i], NULL);
+
+	free_runners(runners_array, threads);
 	
     exit(EXIT_SUCCESS);
 }
@@ -74,6 +78,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 	//allocate the barrier
 	if(barrier_alloc(&bar_tmp, nbrun) <0 ){
 		fprintf(stderr, "init_runners : %s\n", strerror(errno));
+		free_runners(*array, *threads);
 		return -1;
 	}
 
@@ -81,7 +86,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 	*array = (runner_t*)calloc(nbrun, sizeof(runner_t));
 	if(!*array){
 		fprintf(stderr, "init_runners : error while allocating the runners\n");
-		barrier_free(bar_tmp);
+		free_runners(*array, *threads);
 		return -1;
 	}
 
@@ -89,8 +94,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 	*threads = (pthread_t*)calloc(nbrun, sizeof(pthread_t));
 	if(!*threads){
 		fprintf(stderr, "init_runners : error while allocating the threads\n");
-		barrier_free(bar_tmp);
-		free(*array);
+		free_runners(*array, *threads);
 		return -1;
 	}
 
@@ -101,5 +105,20 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 		(*array)[i].nbTurns = nbturns;
 	}
 
+	return 0;
+}
+
+/****************************************************************************************/
+/*  I : Array of runners to free					                                    */
+/*		Array of threads to free														*/
+/*  P : Free all the memory space allocated in the program								*/
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int free_runners(runner_t* array, pthread_t* threads){
+	free(threads);
+	barrier_free(array[0].barrier);
+	free(array);
+	
 	return 0;
 }
