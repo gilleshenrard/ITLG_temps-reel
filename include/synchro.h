@@ -7,11 +7,11 @@
 #include <errno.h>
 
 typedef struct{
-    pthread_mutex_t mutex;                          //mutex used internally to protect the counters manipulations
-    sem_t           turnstile1;                     //first semaphore used during the synchronisation
-    sem_t           turnstile2;                     //second semaphore used during the synchronisation
-    uint16_t        th_count;                       //Amount of threads currently waiting in the barrier sas
-    uint16_t        th_nb;                          //Total amount of threads to synchronise in the barrier
+    pthread_mutex_t mutex;          //mutex used internally to protect the counters manipulations
+    sem_t           turnstile1;     //first semaphore used during the synchronisation
+    sem_t           turnstile2;     //second semaphore used during the synchronisation
+    uint16_t        th_count;       //Amount of threads currently waiting in the barrier sas
+    uint16_t        th_nb;          //Total amount of threads to synchronise in the barrier
 }barrier_t;
 
 int barrier_alloc(barrier_t* bar, const uint16_t nb);
