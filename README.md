@@ -16,35 +16,31 @@ The code can be found on [the GitHub repository](https://github.com/gilleshenrar
 
 Use :
 ```shell
-    ./runners nb_laps
+    bin/runners nb_runners nb_laps
 ```
 
 ### 2. Current features
 * Threads synchronisation functions :
 ```C
-    int barrier_alloc(barrier_t* bar, const uint16_t nb);
+    int barrier_alloc(barrier_t** bar, const uint16_t nb);
     int barrier_free(barrier_t* bar);
-    int barrier_sync(barrier_t* bar);
+    int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg);
 ```
 
 * Runners functions :
 ```C
     void *runner_handler(void *num);
+    int print_barrier(void* run);
 ```
 
 ### 3. Changes
 * Set up the environment
-* Prepared the implementation of the barrier
-* Prepared the implementation of the runners handler
-* Implemented runners initialisation
+* Implement the barrier mechanism
+* Implement the runners handler
+* Implement runners initialisation
 
 ### 4. To Do
-* implement the Barrier function
-* implement the runners handler function
+* implement screen messages shared library
 
 ### 5. Known issues
-* segmentation fault at threads launching
-  Area suspected :
-  ```C
-  (void*)&runners_array[i]
-  ```
+n/a
