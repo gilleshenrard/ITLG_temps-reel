@@ -73,16 +73,19 @@ int barrier_free(barrier_t* bar){
 }
 
 /****************************************************************************************/
-/*  I : /                                                                               */
+/*  I : barrier structure to synchronise                                                */
+/*      procedure to perform in the barrier critical section                            */
+/*      argument to use in the barrier critical section                                 */
 /*  P : Synchronise the current thread with others using the Barrier technique          */
-/*  O : 0 if ok                                                                         */
-/*     -1 otherwise                                                                     */
+/*  O : return value of the critical procedure                                          */
 /****************************************************************************************/
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
-    //handle the first turnstile of the barrier sas
+    int ret = 0;
+    
+    //update the threads count in the barrier
     pthread_mutex_lock(&bar->mutex);
     bar->th_count++;
     if(bar->th_count == bar->th_nb){
@@ -91,12 +94,15 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     }
     pthread_mutex_unlock(&bar->mutex);
 
+    //synchronise all the threads in a first rendezvous
     sem_wait(&bar->turnstile1);
     sem_post(&bar->turnstile1);
 
+    //perform the critical procedure
     if(doAction)
-        (*doAction)(action_arg);
+        ret = (*doAction)(action_arg);
 
+    //cleanup the threads count
     pthread_mutex_lock(&bar->mutex);
     bar->th_count--;
     if(!bar->th_count){
@@ -105,8 +111,9 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     }
     pthread_mutex_unlock(&bar->mutex);
 
+    //synchronise all the threads in a second rendezvous
     sem_wait(&bar->turnstile2);
     sem_post(&bar->turnstile2);
     
-    return 0;
+    return ret;
 }
