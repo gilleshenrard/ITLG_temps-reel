@@ -10,7 +10,9 @@ Several threads are created, then each of them sleeps for a random amount of tim
 the barrier, where it will wait for the other runners.
 
 Once all runners have reached the barrier,
-all of them will start a new lap. 
+all of them will start a new lap.
+
+The code can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment1)
 
 Use :
 ```shell
@@ -18,15 +20,31 @@ Use :
 ```
 
 ### 2. Current features
-The initial setup (program, directories tree, makefiles, libraries) is done.
+* Threads synchronisation functions :
+```C
+    int barrier_alloc(barrier_t* bar, const uint16_t nb);
+    int barrier_free(barrier_t* bar);
+    int barrier_sync(barrier_t* bar);
+```
 
-### 3. Changes since latest release
-n/a
+* Runners functions :
+```C
+    void *runner_handler(void *num);
+```
+
+### 3. Changes
+* Set up the environment
+* Prepared the implementation of the barrier
+* Prepared the implementation of the runners handler
+* Implemented runners initialisation
 
 ### 4. To Do
 * implement the Barrier function
 * implement the runners handler function
-* implement error management code 
 
 ### 5. Known issues
-n/a
+* segmentation fault at threads launching
+  Area suspected :
+  ```C
+  (void*)&runners_array[i]
+  ```

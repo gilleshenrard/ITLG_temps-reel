@@ -1,3 +1,13 @@
+/*
+** main.c
+** Creates runners threads, which will all loop around the following procedure :
+** - sleep for a random amount of time
+** - wait for a rendezvous at a barrier (Barrier multithreading problem)
+** - exit their handler
+** -------------------------------------------
+** Made by Gilles Henrard
+** Last modified : 17/02/2021
+*/
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
