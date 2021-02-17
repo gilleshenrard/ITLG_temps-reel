@@ -14,8 +14,9 @@
 #include "runner.h"
 
 #define NB_THREADS 5
+#define NB_TURNS 3
 
-int init_runners(runner_t** array, const uint16_t nb);
+int init_runners(runner_t** array, const uint16_t nbrun, const uint16_t nbturns);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -28,7 +29,7 @@ int main(int argc, char* argv[])
 	runner_t* runners_array = NULL;
 
 	//initialise the runners
-	if (init_runners(&runners_array, NB_THREADS) < 0)
+	if (init_runners(&runners_array, NB_THREADS, NB_TURNS) < 0)
 		exit(EXIT_FAILURE);
 
 	//initialise time randimisation
@@ -53,22 +54,23 @@ int main(int argc, char* argv[])
 /****************************************************************************************/
 /*  I : Address of an array of runners to initialise                                    */
 /*		Amount of runners to initialise													*/
+/*		Amount of turns all the runners must do											*/
 /*  P : Create an array of runners and assign them their number and common barrier at	*/
 /*			which synchronise with a rendezvous											*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_runners(runner_t** array, const uint16_t nb){
+int init_runners(runner_t** array, const uint16_t nbrun, const uint16_t nbturns){
 	barrier_t* bar_tmp = NULL;
 
 	//allocate the barrier
-	if(barrier_alloc(&bar_tmp, nb) <0 ){
+	if(barrier_alloc(&bar_tmp, nbrun) <0 ){
 		fprintf(stderr, "init_runners : %s\n", strerror(errno));
 		return -1;
 	}
 
 	//allocate the array of runners
-	*array = (runner_t*)calloc(nb, sizeof(runner_t));
+	*array = (runner_t*)calloc(nbrun, sizeof(runner_t));
 	if(!*array){
 		fprintf(stderr, "init_runners : error while allocating the runners\n");
 		barrier_free(bar_tmp);
@@ -76,9 +78,10 @@ int init_runners(runner_t** array, const uint16_t nb){
 	}
 
 	//assign the runner number and barrier
-	for (uint16_t i = 0 ; i < nb ; i++){
+	for (uint16_t i = 0 ; i < nbrun ; i++){
 		(*array)[i].threadNum = i + 1;
 		(*array)[i].barrier = bar_tmp;
+		(*array)[i].nbTurns = nbturns;
 	}
 
 	return 0;

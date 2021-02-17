@@ -81,7 +81,7 @@ int barrier_free(barrier_t* bar){
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-int barrier_sync(barrier_t* bar){
+int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     //handle the first turnstile of the barrier sas
     pthread_mutex_lock(&bar->mutex);
     bar->th_count++;
@@ -94,7 +94,8 @@ int barrier_sync(barrier_t* bar){
     sem_wait(&bar->turnstile1);
     sem_post(&bar->turnstile1);
 
-    //critical point
+    if(doAction)
+        (*doAction)(action_arg);
 
     pthread_mutex_lock(&bar->mutex);
     bar->th_count--;
