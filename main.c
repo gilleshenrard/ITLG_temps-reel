@@ -12,15 +12,16 @@ int main(int argc, char* argv[])
 {
 	pthread_t thread[NB_THREADS];
 	uint16_t i;
-	int ret;
+	int ret, threadnums[5] = {1, 2, 3, 4, 5};
 	
     //create all the runner threads
-    for (i = 0; i < NB_THREADS; i++)
+    for (i = 0; i < NB_THREADS; i++){
 		if ((ret = pthread_create(&thread[i],
-					  NULL, runner_handler, (void *)&i)) != 0) {
+					  NULL, runner_handler, &threadnums[i])) != 0) {
 			fprintf(stderr, "%s", strerror(ret));
 			exit(EXIT_FAILURE);
 		}
+	}
 		
     //wait for all the runner threads to finish
     for (i = 0; i < NB_THREADS; i++)
