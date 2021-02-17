@@ -7,7 +7,7 @@
 
 typedef struct{
     uint16_t    threadNum;
-    barrier_t   barrier;
+    barrier_t*  barrier;
 }runner_t;
 
 void *runner_handler(void *num);
