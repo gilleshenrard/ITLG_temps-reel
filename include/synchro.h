@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 
 typedef struct{
     pthread_mutex_t mutex;          //mutex used internally to protect the counters manipulations
@@ -14,7 +15,7 @@ typedef struct{
     uint16_t        th_nb;          //Total amount of threads to synchronise in the barrier
 }barrier_t;
 
-int barrier_alloc(barrier_t* bar, const uint16_t nb);
+int barrier_alloc(barrier_t** bar, const uint16_t nb);
 int barrier_free(barrier_t* bar);
 int barrier_sync(barrier_t* bar);
 
