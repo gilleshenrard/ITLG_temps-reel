@@ -30,6 +30,9 @@ int main(int argc, char* argv[])
 	//initialise the runners
 	if (init_runners(&runners_array, NB_THREADS) < 0)
 		exit(EXIT_FAILURE);
+
+	//initialise time randimisation
+	srand(time(NULL));
 	
     //create all the runner threads
     for (i = 0; i < NB_THREADS; i++){
@@ -59,7 +62,7 @@ int init_runners(runner_t** array, const uint16_t nb){
 	barrier_t* bar_tmp = NULL;
 
 	//allocate the barrier
-	if(barrier_alloc(bar_tmp, nb) <0 ){
+	if(barrier_alloc(&bar_tmp, nb) <0 ){
 		fprintf(stderr, "init_runners : %s\n", strerror(errno));
 		return -1;
 	}
