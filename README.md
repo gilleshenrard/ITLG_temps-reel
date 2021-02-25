@@ -1,22 +1,15 @@
 # Temps Reel
-## Exercise 1 - Runners 
+## Exercise 2 - Producers-consumers
 ---
 ### 1. Intro
-The aim of this assignment is to implement the Barrier multithreading synchronisation technique.
+The aim of this assignment is to implement the FIFO multithreading synchronisation technique, as well as
+the Producers-Consumers problem.
 
-The program is launched with the amount of laps to run in parameter.
-
-Several threads are created, then each of them sleeps for a random amount of time, then reaches
-the barrier, where it will wait for the other runners.
-
-Once all runners have reached the barrier,
-all of them will start a new lap.
-
-The code can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment1)
+The code can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment2)
 
 Use :
 ```shell
-    bin/runners nb_runners nb_laps
+    bin/prodcons
 ```
 
 ### 2. Current features
@@ -27,17 +20,12 @@ Use :
     int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg);
 ```
 
-* Runners functions :
+* ProdCons functions :
 ```C
-    void *runner_handler(void *num);
-    int print_barrier(void* run);
 ```
 
 ### 3. Changes
-* Set up the environment
-* Implement the barrier mechanism
-* Implement the runners handler
-* Implement runners initialisation
+n/a
 
 ### 4. To Do
 * implement screen messages shared library
