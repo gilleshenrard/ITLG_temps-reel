@@ -5,7 +5,7 @@ cbin := bin
 
 #flags necessary to the compilation
 CC := gcc
-APP := runners
+APP := prodcons
 CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead)
 LFLAGS:= -lsynchro -lrunner -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
