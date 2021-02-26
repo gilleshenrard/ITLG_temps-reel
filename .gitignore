@@ -53,4 +53,5 @@ dkms.conf
 
 # Project-specific files and directories
 bin/
+input/
 main.c~
