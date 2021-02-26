@@ -28,6 +28,8 @@ void *readproc_handler(void *proc){
     pfile = fopen(process->filename, "r");
     if(!pfile){
         fprintf(stderr, "readproc_handler : %s\n", strerror(errno));
+        buf = EOF;
+        fifo_push(process->fifo, (void*)(&buf));
         ret = (int*)malloc(sizeof(int));
         *ret = -1;
         pthread_exit(ret);
