@@ -14,6 +14,11 @@ typedef struct{
     fifo_t*  dispfifo;  //fifo to which pushing the characters to display
 }calcproc_t;
 
+typedef struct{
+    fifo_t*  dispfifo;  //fifo to which pushing the characters to display
+}dispproc_t;
+
 void *readproc_handler(void *proc);
 void *calcproc_handler(void *proc);
+void *dispproc_handler(void *proc);
 #endif
