@@ -10,9 +10,6 @@
 ** Made by Gilles Henrard
 ** Last modified : 26/02/2021
 */
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include "processes.h"
 
 int init_processes(void* processes[], const uint16_t* fifosize, const char* filename);
