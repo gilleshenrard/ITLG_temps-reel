@@ -13,7 +13,8 @@
 /*  P : Execute the file reading process :                                              */
 /*			- read a text file character by character                                   */
 /*          - push each character into the first FIFO queue                             */  
-/*  O : /                                                                               */
+/*  O : NULL if ok                                                                      */
+/*     -1 (as a void pointer) if error                                                  */
 /****************************************************************************************/
 void *readproc_handler(void *proc){
     readproc_t* process = (readproc_t*)proc;
@@ -34,9 +35,35 @@ void *readproc_handler(void *proc){
     
     //read the file character by character and push all the characters read in
     //  the FIFO queue
-    while((buf = (char)fgetc(pfile)) != EOF)
+    do{
+        buf = (char)fgetc(pfile);
         fifo_push(process->fifo, (void*)(&buf));
+    }while(buf != EOF);
     fclose(pfile);
 	
 	pthread_exit(ret);
+}
+
+/****************************************************************************************/
+/*  I : process structure to use                                                        */
+/*  P : Execute the file reading process :                                              */
+/*			- read a text file character by character                                   */
+/*          - push each character into the first FIFO queue                             */  
+/*  O : NULL                                                                            */
+/****************************************************************************************/
+void *calcproc_handler(void *proc){
+    calcproc_t* process = (calcproc_t*)proc;
+    char* buf = NULL, output = '0';
+
+    //pop one character at a time and push its upper case in the second FIFO
+    //  until reaching EOF
+    do{
+        buf = fifo_pop(process->readfifo);
+        output = toupper(*buf);
+        free(buf);
+        fifo_push(process->dispfifo, &output);
+        fprintf(stdout, "%c\n", output);
+    }while(tolower(output) != EOF);
+
+	pthread_exit(NULL);
 }

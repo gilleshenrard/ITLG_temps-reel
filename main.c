@@ -15,18 +15,19 @@
 #include <unistd.h>
 #include "processes.h"
 
-int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* filename);
-int free_processes(readproc_t* readproc);
+int init_processes(readproc_t** readproc, calcproc_t** calcproc, const uint16_t* fifosize, const char* filename);
+int free_processes(readproc_t* readproc, calcproc_t* calcproc);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 int main(int argc, char* argv[])
 {
-	pthread_t threads;
+	pthread_t threads[2];
 	uint16_t fifosize = 0;
 	int ret = 0, *thret = NULL;
 	readproc_t* readproc = NULL;
+	calcproc_t* calcproc = NULL;
 	char* filename = NULL;
 
 	//check if the fifo size and file name have been provided in the program arguments
@@ -46,41 +47,67 @@ int main(int argc, char* argv[])
 	}
 
 	//initialise the processes and the FIFO queues they use
-	init_processes(&readproc, &fifosize, filename);
+	init_processes(&readproc, &calcproc, &fifosize, filename);
 
     //create the file reading procedure thread
-	ret = pthread_create(&threads, NULL, readproc_handler, readproc);
+	ret = pthread_create(&threads[0], NULL, readproc_handler, readproc);
 	if (ret){
 		fprintf(stderr, "main : %s", strerror(ret));
-		free_processes(readproc);
+		free_processes(readproc, calcproc);
+		exit(EXIT_FAILURE);
+	}
+
+    //create the calculation procedure thread
+	ret = pthread_create(&threads[1], NULL, calcproc_handler, calcproc);
+	if (ret){
+		fprintf(stderr, "main : %s", strerror(ret));
+		free_processes(readproc, calcproc);
 		exit(EXIT_FAILURE);
 	}
 		
-    //wait for all the runner threads to finish
-	pthread_join(threads, (void**)&thret);
+    //wait for the file reading process to finish
+	pthread_join(threads[0], (void**)&thret);
 	if(thret){
 		fprintf(stderr, "Error while processing the file reading.\n");
-		free_processes(readproc);
+		free_processes(readproc, calcproc);
+		free(thret);
 		exit(EXIT_FAILURE);
 	}
-	free(thret);
+		
+    //wait for the calculation process to finish
+	pthread_join(threads[1], (void**)&thret);
+	if(thret){
+		fprintf(stderr, "Error while processing the characters calculation.\n");
+		free_processes(readproc, calcproc);
+		free(thret);
+		exit(EXIT_FAILURE);
+	}
 	
+	free_processes(readproc, calcproc);
 	free(filename);
     exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************************/
 /*  I : Address of the file reading process structure to initialise                     */
+/*		Address of the calculation process structure to initialise						*/
 /*		Amount of slots all the FIFO queues hold										*/
 /*  P : Create all the processes and assign them their FIFO queues to use				*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* filename){
+int init_processes(readproc_t** readproc, calcproc_t** calcproc, const uint16_t* fifosize, const char* filename){
 	fifo_t* readfifo = NULL;
+	fifo_t* dispfifo = NULL;
 
 	//allocate the FIFO queue holding the characters read
 	if(fifo_alloc(&readfifo, sizeof(char), *fifosize) <0 ){
+		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		return -1;
+	}
+
+	//allocate the FIFO queue holding the characters read
+	if(fifo_alloc(&dispfifo, sizeof(char), *fifosize) <0 ){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
 		return -1;
 	}
@@ -92,21 +119,33 @@ int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* 
 		return -1;
 	}
 
+	//allocate the calculation process structure
+	*calcproc = (calcproc_t*)calloc(1, sizeof(calcproc_t));
+	if(!*calcproc){
+		fprintf(stderr, "init_processes : error while allocating the calculation process structure\n");
+		return -1;
+	}
+
 	//assign the file name and reading FIFO to the file reading process
 	(*readproc)->filename = calloc(1, strlen(filename) + 1);
 	strcpy((*readproc)->filename, filename);
 	(*readproc)->fifo = readfifo;
+
+	//assign both FIFO queues to be used in the calculation process
+	(*calcproc)->readfifo = readfifo;
+	(*calcproc)->dispfifo = dispfifo;
 
 	return 0;
 }
 
 /****************************************************************************************/
 /*  I : File reading process to deallocate												*/
+/*		Calculation process to deallocate												*/
 /*  P : Deallocate process structures and all of their components						*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int free_processes(readproc_t* readproc){
+int free_processes(readproc_t* readproc, calcproc_t* calcproc){
 	if(!readproc)
 		return 0;
 	
@@ -114,6 +153,10 @@ int free_processes(readproc_t* readproc){
 	fifo_free(readproc->fifo);
 	free(readproc->filename);
 	free(readproc);
+
+	//deallocate the calculation process
+	fifo_free(calcproc->dispfifo);
+	free(calcproc);
 
 	return 0;
 }
