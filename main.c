@@ -16,6 +16,7 @@
 #include "processes.h"
 
 int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* filename);
+int free_processes(readproc_t* readproc);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -51,6 +52,7 @@ int main(int argc, char* argv[])
 	ret = pthread_create(&threads, NULL, readproc_handler, readproc);
 	if (ret){
 		fprintf(stderr, "main : %s", strerror(ret));
+		free_processes(readproc);
 		exit(EXIT_FAILURE);
 	}
 		
@@ -58,6 +60,7 @@ int main(int argc, char* argv[])
 	pthread_join(threads, (void**)&thret);
 	if(thret){
 		fprintf(stderr, "Error while processing the file reading.\n");
+		free_processes(readproc);
 		exit(EXIT_FAILURE);
 	}
 	free(thret);
@@ -93,6 +96,24 @@ int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* 
 	(*readproc)->filename = calloc(1, strlen(filename) + 1);
 	strcpy((*readproc)->filename, filename);
 	(*readproc)->fifo = readfifo;
+
+	return 0;
+}
+
+/****************************************************************************************/
+/*  I : File reading process to deallocate												*/
+/*  P : Deallocate process structures and all of their components						*/  
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int free_processes(readproc_t* readproc){
+	if(!readproc)
+		return 0;
+	
+	//deallocate the file reading process
+	fifo_free(readproc->fifo);
+	free(readproc->filename);
+	free(readproc);
 
 	return 0;
 }
