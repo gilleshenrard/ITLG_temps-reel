@@ -1,124 +1,98 @@
 /*
 ** main.c
-** Creates runners threads, which will all loop around the following procedure :
-** - sleep for a random amount of time
-** - wait for a rendezvous at a barrier (Barrier multithreading problem)
-** - exit their handler
+** Creates processes threads, which will respectively do the following :
+**		- file reading process : read a file one character at a time, and feed them to a FIFO queue
+**		- characters processing : take each character from the reading FIFO, make them upper case,
+**			then feed them to a second FIFO queue
+**		- displaying process : take each character from the second FIFO, and display them one at a time
+**			on screen
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 17/02/2021
+** Last modified : 26/02/2021
 */
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "runner.h"
+#include "processes.h"
 
-int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, const uint16_t nbturns);
-int free_runners(runner_t* array, pthread_t* threads);
+int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* filename);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 int main(int argc, char* argv[])
 {
-	pthread_t* threads = NULL;
-	uint16_t i = 0, nbrun = 0, nblaps = 0;
-	int ret = 0;
-	runner_t* runners_array = NULL;
+	pthread_t threads;
+	uint16_t fifosize = 0;
+	int ret = 0, *thret = NULL;
+	readproc_t* readproc = NULL;
+	char* filename = NULL;
 
-	//check if the amount of runners and laps to run have been provided as program arguments
+	//check if the fifo size and file name have been provided in the program arguments
 	if(argc != 3){
-		fprintf(stderr, "usage : bin/runners nb_runners nb_laps");
+		fprintf(stderr, "usage : bin/prodcons fifo_size filename\n");
 		exit(EXIT_FAILURE);
 	}
 	else
 	{
-		nbrun = atoi(argv[1]);
-		nblaps = atoi(argv[2]);
-	}
-
-	//initialise the runners
-	if (init_runners(&runners_array, &threads, nbrun, nblaps) < 0)
-		exit(EXIT_FAILURE);
-
-	//initialise time randimisation
-	srand(time(NULL));
-	
-    //create all the runner threads
-    for (i = 0; i < nbrun; i++){
-		ret = pthread_create(&threads[i], NULL, runner_handler, (void*)(&runners_array[i]));
-		if (ret){
-			fprintf(stderr, "main : %s", strerror(ret));
-			free_runners(runners_array, threads);
+		fifosize = atoi(argv[1]);
+		filename = (char*)calloc(strlen(argv[2]) + 1, sizeof(char));
+		if(!filename){
+			fprintf(stderr, "main : error while allocating the file name buffer\n");
 			exit(EXIT_FAILURE);
 		}
+		strcpy(filename, argv[2]);
+	}
+
+	//initialise the processes and the FIFO queues they use
+	init_processes(&readproc, &fifosize, filename);
+
+    //create the file reading procedure thread
+	ret = pthread_create(&threads, NULL, readproc_handler, readproc);
+	if (ret){
+		fprintf(stderr, "main : %s", strerror(ret));
+		exit(EXIT_FAILURE);
 	}
 		
     //wait for all the runner threads to finish
-    for (i = 0; i < nbrun; i++)
-		pthread_join(threads[i], NULL);
-
-	free_runners(runners_array, threads);
+	pthread_join(threads, (void**)&thret);
+	if(thret){
+		fprintf(stderr, "Error while processing the file reading.\n");
+		exit(EXIT_FAILURE);
+	}
+	free(thret);
 	
+	free(filename);
     exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************************/
-/*  I : Address of an array of runners to initialise                                    */
-/*		Amount of runners to initialise													*/
-/*		Amount of turns all the runners must do											*/
-/*  P : Create an array of runners and assign them their number and common barrier at	*/
-/*			which synchronise with a rendezvous											*/  
+/*  I : Address of the file reading process structure to initialise                     */
+/*		Amount of slots all the FIFO queues hold										*/
+/*  P : Create all the processes and assign them their FIFO queues to use				*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, const uint16_t nbturns){
-	barrier_t* bar_tmp = NULL;
+int init_processes(readproc_t** readproc, const uint16_t* fifosize, const char* filename){
+	fifo_t* readfifo = NULL;
 
-	//allocate the barrier
-	if(barrier_alloc(&bar_tmp, nbrun) <0 ){
-		fprintf(stderr, "init_runners : %s\n", strerror(errno));
-		free_runners(*array, *threads);
+	//allocate the FIFO queue holding the characters read
+	if(fifo_alloc(&readfifo, sizeof(char), *fifosize) <0 ){
+		fprintf(stderr, "init_processes : %s\n", strerror(errno));
 		return -1;
 	}
 
-	//allocate the array of runners
-	*array = (runner_t*)calloc(nbrun, sizeof(runner_t));
-	if(!*array){
-		fprintf(stderr, "init_runners : error while allocating the runners\n");
-		free_runners(*array, *threads);
+	//allocate the file reading process structure
+	*readproc = (readproc_t*)calloc(1, sizeof(readproc_t));
+	if(!*readproc){
+		fprintf(stderr, "init_processes : error while allocating the file reading process structure\n");
 		return -1;
 	}
 
-	//allocate the threads
-	*threads = (pthread_t*)calloc(nbrun, sizeof(pthread_t));
-	if(!*threads){
-		fprintf(stderr, "init_runners : error while allocating the threads\n");
-		free_runners(*array, *threads);
-		return -1;
-	}
+	//assign the file name and reading FIFO to the file reading process
+	(*readproc)->filename = calloc(1, strlen(filename) + 1);
+	strcpy((*readproc)->filename, filename);
+	(*readproc)->fifo = readfifo;
 
-	//assign the runner number and barrier
-	for (uint16_t i = 0 ; i < nbrun ; i++){
-		(*array)[i].threadNum = i + 1;
-		(*array)[i].barrier = bar_tmp;
-		(*array)[i].nbTurns = nbturns;
-	}
-
-	return 0;
-}
-
-/****************************************************************************************/
-/*  I : Array of runners to free					                                    */
-/*		Array of threads to free														*/
-/*  P : Free all the memory space allocated in the program								*/
-/*  O : 0 if no error                                                                   */
-/*	   -1 otherwise																		*/
-/****************************************************************************************/
-int free_runners(runner_t* array, pthread_t* threads){
-	free(threads);
-	barrier_free(array[0].barrier);
-	free(array);
-	
 	return 0;
 }

@@ -7,7 +7,7 @@ cbin := bin
 CC := gcc
 APP := prodcons
 CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead)
-LFLAGS:= -lsynchro -lrunner -pthread
+LFLAGS:= -lsynchro -lproc -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
 
 #executables compilation
