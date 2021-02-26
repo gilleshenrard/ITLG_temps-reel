@@ -3,7 +3,7 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 25/02/2021
+** Last modified : 26/02/2021
 */
 #include "synchro.h"
 
@@ -97,11 +97,11 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     
     //update the threads count in the barrier
     pthread_mutex_lock(&bar->mutex);
-    bar->th_count++;
-    if(bar->th_count == bar->th_nb){
-        sem_wait(&bar->turnstile2);
-        sem_post(&bar->turnstile1);
-    }
+        bar->th_count++;
+        if(bar->th_count == bar->th_nb){
+            sem_wait(&bar->turnstile2);
+            sem_post(&bar->turnstile1);
+        }
     pthread_mutex_unlock(&bar->mutex);
 
     //synchronise all the threads in a first rendezvous
@@ -114,11 +114,11 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
 
     //cleanup the threads count
     pthread_mutex_lock(&bar->mutex);
-    bar->th_count--;
-    if(!bar->th_count){
-        sem_wait(&bar->turnstile1);
-        sem_post(&bar->turnstile2);
-    }
+        bar->th_count--;
+        if(!bar->th_count){
+            sem_wait(&bar->turnstile1);
+            sem_post(&bar->turnstile2);
+        }
     pthread_mutex_unlock(&bar->mutex);
 
     //synchronise all the threads in a second rendezvous
@@ -229,13 +229,44 @@ int fifo_push(fifo_t* fifo, void* elem){
 
     //insert the new element + increment the input index + rollback to 0 if end of circ. buffer
     pthread_mutex_lock(&fifo->mutex);
-    memcpy(fifo->buffer + (fifo->indexIn * fifo->item_sz), elem, fifo->item_sz);
-    fifo->indexIn++;
-    fifo->indexIn %= fifo->nb_items; 
+        memcpy(fifo->buffer + (fifo->indexIn * fifo->item_sz), elem, fifo->item_sz);
+        fifo->indexIn++;
+        fifo->indexIn %= fifo->nb_items; 
     pthread_mutex_unlock(&fifo->mutex);
 
     //increment the amount of items in the FIFO queue
     sem_post(&fifo->items);
 
     return 0;
+}
+
+/****************************************************************************************/
+/*  I : FIFO to which push the element                                                  */
+/*  P : Wait for an item in the FIFO queue, then pop it when available                  */
+/*  O : address of the popped element if ok                                             */
+/*      NULL otherwise                                                                  */
+/****************************************************************************************/
+void* fifo_pop(fifo_t* fifo){
+    void* ret = NULL;
+
+    //allocate space for the element to pop (MUST BE DEALLOCATED AFTER USE)
+    ret = calloc(1, fifo->item_sz);
+    if(!ret)
+        return NULL;
+
+    //wait for an item in the FIFO queue
+    sem_wait(&fifo->items);
+
+    //get the address of the element to pop + increment the output index
+    //  + rollback to 0 if end of circ. buffer
+    pthread_mutex_lock(&fifo->mutex);
+        memcpy(ret, fifo->buffer + (fifo->indexOut * fifo->item_sz), fifo->item_sz);
+        fifo->indexOut++;
+        fifo->indexOut %= fifo->nb_items; 
+    pthread_mutex_unlock(&fifo->mutex);
+
+    //increment the amount of items in the FIFO queue
+    sem_post(&fifo->spaces);
+
+    return ret;
 }

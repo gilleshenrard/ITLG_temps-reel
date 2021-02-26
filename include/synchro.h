@@ -35,4 +35,5 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg);
 int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount);
 int fifo_free(fifo_t* fifo);
 int fifo_push(fifo_t* fifo, void* elem);
+void* fifo_pop(fifo_t* fifo);
 #endif
