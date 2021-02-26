@@ -1,6 +1,7 @@
 #ifndef RUNNER_THREAD_INCLUDED
 #define RUNNER_THREAD_INCLUDED
 #include <stdio.h>
+#include <stdlib.h>
 #include "synchro.h"
 #include "ctype.h"
 

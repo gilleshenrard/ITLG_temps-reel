@@ -19,7 +19,8 @@
 void *readproc_handler(void *proc){
     readproc_t* process = (readproc_t*)proc;
     FILE* pfile = NULL;
-    int* ret = NULL;
+    char* ret = NULL;
+    uint16_t len = 0;
     char buf = '0';
 
     fprintf(stdout, "Reading file %s\n", process->filename);
@@ -27,11 +28,15 @@ void *readproc_handler(void *proc){
     //open the file to read
     pfile = fopen(process->filename, "r");
     if(!pfile){
-        fprintf(stderr, "readproc_handler : %s\n", strerror(errno));
+        //push the EOF character to stop the other processes
         buf = EOF;
         fifo_push(process->fifo, (void*)(&buf));
-        ret = (int*)malloc(sizeof(int));
-        *ret = -1;
+        
+        //make the thread return an error message
+        len = strlen("readproc_handler : ") + strlen(strerror(errno));
+        ret = (char*)calloc(len + 1, sizeof(char));
+        sprintf(ret, "readproc_handler : %s", strerror(errno));
+
         pthread_exit(ret);
     }
     

@@ -92,13 +92,13 @@ int launch_threads(pthread_t threads[], void* processes[]){
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
 int join_threads(pthread_t threads[], void* processes[]){
-	int *thret = NULL;
+	char *thret = NULL;
 	
 	for (int i = 0 ; i < 3 ; i++)
 	{
 		pthread_join(threads[i], (void**)&thret);
 		if(thret){
-			fprintf(stderr, "Error while processing the file reading.\n");
+			fprintf(stderr, "%s\n", thret);
 			free_processes(processes);
 			free(thret);
 			exit(EXIT_FAILURE);
