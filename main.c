@@ -131,38 +131,23 @@ int init_processes(readproc_t** readproc, calcproc_t** calcproc, dispproc_t** di
 		return -1;
 	}
 
-	//allocate the file reading process structure
-	*readproc = (readproc_t*)calloc(1, sizeof(readproc_t));
-	if(!*readproc){
-		fprintf(stderr, "init_processes : error while allocating the file reading process structure\n");
+	//allocate the file reading process
+	if(readproc_alloc(readproc, readfifo, filename) < 0){
+		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		return -1;
+	} 
+
+	//allocate the characters calculation process
+	if(calcproc_alloc(calcproc, readfifo, dispfifo) < 0){
+		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		return -1;
+	} 
+
+	//allocate the characters printing
+	if(dispproc_alloc(dispproc, dispfifo) < 0){
+		fprintf(stderr, "init_processes : %s\n", strerror(errno));
 		return -1;
 	}
-
-	//allocate the calculation process structure
-	*calcproc = (calcproc_t*)calloc(1, sizeof(calcproc_t));
-	if(!*calcproc){
-		fprintf(stderr, "init_processes : error while allocating the calculation process structure\n");
-		return -1;
-	}
-
-	//allocate the calculation process structure
-	*dispproc = (dispproc_t*)calloc(1, sizeof(dispproc_t));
-	if(!*dispproc){
-		fprintf(stderr, "init_processes : error while allocating the display process structure\n");
-		return -1;
-	}
-
-	//assign the file name and reading FIFO to the file reading process
-	(*readproc)->filename = calloc(1, strlen(filename) + 1);
-	strcpy((*readproc)->filename, filename);
-	(*readproc)->fifo = readfifo;
-
-	//assign both FIFO queues to be used in the calculation process
-	(*calcproc)->readfifo = readfifo;
-	(*calcproc)->dispfifo = dispfifo;
-
-	//assign the display FIFO to the display process
-	(*dispproc)->dispfifo = dispfifo;
 
 	return 0;
 }
