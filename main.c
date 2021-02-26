@@ -17,6 +17,7 @@
 
 int init_processes(void* processes[], const uint16_t* fifosize, const char* filename);
 int launch_threads(pthread_t threads[], void* processes[]);
+int join_threads(pthread_t threads[], void* processes[]);
 int free_processes(void* processes[]);
 
 #ifdef __GNUC__
@@ -26,7 +27,6 @@ int main(int argc, char* argv[])
 {
 	pthread_t threads[3];
 	uint16_t fifosize = 0;
-	int *thret = NULL;
 	void* processes[3] = {NULL};
 	char* filename = NULL;
 
@@ -51,34 +51,11 @@ int main(int argc, char* argv[])
 
 	//launch the threads
 	launch_threads(threads, processes);
-		
-    //wait for the file reading process to finish
-	pthread_join(threads[0], (void**)&thret);
-	if(thret){
-		fprintf(stderr, "Error while processing the file reading.\n");
-		free_processes(processes);
-		free(thret);
-		exit(EXIT_FAILURE);
-	}
-		
-    //wait for the calculation process to finish
-	pthread_join(threads[1], (void**)&thret);
-	if(thret){
-		fprintf(stderr, "Error while processing the characters calculation.\n");
-		free_processes(processes);
-		free(thret);
-		exit(EXIT_FAILURE);
-	}
-		
-    //wait for the display process to finish
-	pthread_join(threads[2], (void**)&thret);
-	if(thret){
-		fprintf(stderr, "Error while processing the characters diplaying.\n");
-		free_processes(processes);
-		free(thret);
-		exit(EXIT_FAILURE);
-	}
-	
+
+	//wait for all the threads to finish
+	join_threads(threads, processes);
+
+	//free the processes and exit	
 	free_processes(processes);
 	free(filename);
     exit(EXIT_SUCCESS);
@@ -100,6 +77,30 @@ int launch_threads(pthread_t threads[], void* processes[]){
 		if (ret){
 			fprintf(stderr, "main : %s", strerror(ret));
 			free_processes(processes);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	return 0;
+}
+
+/****************************************************************************************/
+/*  I : Threads to join																	*/
+/*		processes to use in the threads													*/
+/*  P : Wait for all the threads to finish running										*/  
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int join_threads(pthread_t threads[], void* processes[]){
+	int *thret = NULL;
+	
+	for (int i = 0 ; i < 3 ; i++)
+	{
+		pthread_join(threads[i], (void**)&thret);
+		if(thret){
+			fprintf(stderr, "Error while processing the file reading.\n");
+			free_processes(processes);
+			free(thret);
 			exit(EXIT_FAILURE);
 		}
 	}
