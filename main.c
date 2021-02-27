@@ -131,21 +131,18 @@ int init_processes(void* processes[], const uint16_t* fifosize, const char* file
 	}
 
 	//allocate the file reading process
-	processes[0] = calloc(1, sizeof(readproc_t));
 	if(readproc_alloc((readproc_t**)&processes[0], readfifo, filename) < 0){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
 		return -1;
 	} 
 
 	//allocate the characters calculation process
-	processes[1] = calloc(1, sizeof(calcproc_t));
 	if(calcproc_alloc((calcproc_t**)&processes[1], readfifo, dispfifo) < 0){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
 		return -1;
 	} 
 
 	//allocate the characters printing
-	processes[2] = calloc(1, sizeof(dispproc_t));
 	if(dispproc_alloc((dispproc_t**)&processes[2], dispfifo) < 0){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
 		return -1;
