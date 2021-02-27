@@ -127,24 +127,28 @@ int init_processes(void* processes[], const uint16_t* fifosize, const char* file
 	//allocate the FIFO queue holding the characters read
 	if(fifo_alloc(&dispfifo, sizeof(char), *fifosize) <0 ){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		free_processes(processes);
 		return -1;
 	}
 
 	//allocate the file reading process
 	if(readproc_alloc((readproc_t**)&processes[0], readfifo, filename) < 0){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		free_processes(processes);
 		return -1;
 	} 
 
 	//allocate the characters calculation process
 	if(calcproc_alloc((calcproc_t**)&processes[1], readfifo, dispfifo) < 0){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		free_processes(processes);
 		return -1;
 	} 
 
 	//allocate the characters printing
 	if(dispproc_alloc((dispproc_t**)&processes[2], dispfifo) < 0){
 		fprintf(stderr, "init_processes : %s\n", strerror(errno));
+		free_processes(processes);
 		return -1;
 	}
 
