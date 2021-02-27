@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 26/02/2021
+** Last modified : 27/02/2021
 */
 #include "processes.h"
 
@@ -22,6 +22,7 @@ void *readproc_handler(void *proc){
     char* ret = NULL;
     uint16_t len = 0;
     char buf = '0';
+    uint32_t waittime = 0;
 
     fprintf(stdout, "Reading file %s\n", process->filename);
 
@@ -43,6 +44,11 @@ void *readproc_handler(void *proc){
     //read the file character by character and push all the characters read in
     //  the FIFO queue
     do{
+        //sleep between 0 and 300 us
+        waittime = rand() % 300;
+		usleep(waittime);
+
+        //read a character from the file and output it in the FIFO
         buf = (char)fgetc(pfile);
         fifo_push(process->fifo, (void*)(&buf));
     }while(buf != EOF);
@@ -90,10 +96,16 @@ int readproc_alloc(readproc_t** readproc, fifo_t* readfifo, const char* filename
 void *calcproc_handler(void *proc){
     calcproc_t* process = (calcproc_t*)proc;
     char* buf = NULL, output = '0';
+    uint32_t waittime = 0;
 
     //pop one character at a time and push its upper case in the second FIFO
     //  until reaching EOF
     do{
+        //sleep between 300 and 600 us
+        waittime = 300 + (rand() % 300);
+		usleep(waittime);
+
+        //pop a character from the 1st fifo and push its lower case to the 2nd fifo
         buf = fifo_pop(process->readfifo);
         output = toupper(*buf);
         free(buf);
@@ -137,10 +149,16 @@ int calcproc_alloc(calcproc_t** calcproc, fifo_t* readfifo, fifo_t* dispfifo){
 void *dispproc_handler(void *proc){
     dispproc_t* process = (dispproc_t*)proc;
     char* buf = NULL, output = '0';
+    uint32_t waittime = 0;
 
     //pop one character at a time and display it
     //  until reaching EOF
     do{
+        //sleep between 600 and 900 us
+        waittime = 600 + (rand() % 300);
+		usleep(waittime);
+
+        //pop a character from the second FIFO and print it on the screen
         buf = fifo_pop(process->dispfifo);
         output = *buf;
         free(buf);

@@ -1,14 +1,14 @@
 /*
 ** main.c
 ** Creates processes threads, which will respectively do the following :
-**		- file reading process : read a file one character at a time, and feed them to a FIFO queue
-**		- characters processing : take each character from the reading FIFO, make them upper case,
+**		- file reading process : wait, then read a file one character at a time, and feed the characters to a FIFO queue
+**		- characters processing : wait, then take each character from the reading FIFO, make them upper case,
 **			then feed them to a second FIFO queue
-**		- displaying process : take each character from the second FIFO, and display them one at a time
+**		- displaying process : wait, then take each character from the second FIFO, and display them one at a time
 **			on screen
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 26/02/2021
+** Last modified : 27/02/2021
 */
 #include "processes.h"
 
@@ -42,6 +42,9 @@ int main(int argc, char* argv[])
 		}
 		strcpy(filename, argv[2]);
 	}
+
+	//initialise time randimisation
+	srand(time(NULL));
 
 	//initialise the processes and the FIFO queues they use
 	init_processes(processes, &fifosize, filename);
