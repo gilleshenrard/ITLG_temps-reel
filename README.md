@@ -34,17 +34,27 @@ Use :
 
 * ProdCons functions :
 ```C
+    //file reading functions
     void *readproc_handler(void *proc);
+    int readproc_alloc(readproc_t** readproc, fifo_t* readfifo, const char* filename);
+
+    //characters handling functions
     void *calcproc_handler(void *proc);
+    int calcproc_alloc(calcproc_t** calcproc, fifo_t* readfifo, fifo_t* dispfifo);
+
+    //characters printing
     void *dispproc_handler(void *proc);
+    int dispproc_alloc(dispproc_t** dispproc, fifo_t* dispfifo);
 ```
 
 ### 3. Changes
-all producer/consumer functions + FIFO functions have been implemented
+* processes now wait for a random amount of time before doing their tasks at each loop turn
+* code has been generalised and tidied in the main() code
+* reading process now pushes and EOF character in case of error to force the other threads to stop cleanly
 
 ### 4. To Do
 * implement screen messages shared library
-* move processes allocation/deallocation functions to the process library
+* move processes deallocation functions to the process library
 
 ### 5. Known issues
 n/a
