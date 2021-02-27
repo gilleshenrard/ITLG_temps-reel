@@ -74,10 +74,13 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
 /*     -1 otherwise                                                                     */
 /****************************************************************************************/
 int barrier_free(barrier_t* bar){
-    pthread_mutex_destroy (&bar->mutex);
-    sem_destroy (&bar->turnstile1);
-    sem_destroy (&bar->turnstile2);
-    free(bar);
+    if(bar){
+        pthread_mutex_destroy (&bar->mutex);
+        sem_destroy (&bar->turnstile1);
+        sem_destroy (&bar->turnstile2);
+        free(bar);
+        bar = NULL;
+    }
 
     return 0;
 }
@@ -89,9 +92,6 @@ int barrier_free(barrier_t* bar){
 /*  P : Synchronise the current thread with others using the Barrier technique          */
 /*  O : return value of the critical procedure                                          */
 /****************************************************************************************/
-#ifdef __GNUC__
-# pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
 int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     int ret = 0;
     
@@ -207,10 +207,12 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
 /*     -1 otherwise                                                                     */
 /****************************************************************************************/
 int fifo_free(fifo_t* fifo){
-    sem_destroy (&fifo->spaces);
-    sem_destroy (&fifo->items);
-    pthread_mutex_destroy (&fifo->mutex);
-    free(fifo);
+    if(fifo){
+        sem_destroy (&fifo->spaces);
+        sem_destroy (&fifo->items);
+        pthread_mutex_destroy (&fifo->mutex);
+        free(fifo);
+    }
 
     return 0;
 }
