@@ -1,7 +1,7 @@
 #include "readwrite.h"
 
 /****************************************************************************************/
-/*  I : readers type to allocate                                                        */
+/*  I : readers/writer type to allocate                                                 */
 /*      readers/writers type used to synchronise readers                                */
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
@@ -10,7 +10,7 @@
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int reader_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+int readwrite_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
     //allocate the memory for the reader structure
     *reader = calloc(1, sizeof(thrw_t));
     if(!*reader){
@@ -53,6 +53,39 @@ int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
 
     fprintf(stdout, "Reader n°%d reads : %d", rd->thNum, *((int*)rd->data));
+
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type used in the synchro                                        */
+/*  P : Wait for up to 400us, then increment the data value (and display the result),   */
+/*          then stop when the data reached the max value                               */
+/*  O : /                                                                               */
+/****************************************************************************************/
+void *writer_handler(void *writer){
+    thrw_t* wr = (thrw_t*)writer;
+
+    do{
+        usleep(1 + (rand() % 400));
+        rw_write(wr->rw, updateData, &wr);
+    }while (*wr->data <= wr->max);
+
+    pthread_exit(NULL);
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type to display                                                 */
+/*  P : Increment the data value and display its value                                  */
+/*  O : /                                                                               */
+/****************************************************************************************/
+int updateData(void* writer){
+    thrw_t* wr = (thrw_t*)writer;
+    int* data = (int*)wr->data;
+
+    *data = (*data) + 1;
+
+    fprintf(stdout, "Writer n°%d writes : %d", wr->thNum, *data);
 
     return 0;
 }
