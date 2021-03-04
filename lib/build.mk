@@ -8,7 +8,7 @@ chead:= ../include
 #flags necessary to the compilation
 CC := gcc
 CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead)
-lib_b:= libsynchro.so libproc.so
+lib_b:= libsynchro.so
 
 #objects compilation from the source files
 %.o: %.c
@@ -18,12 +18,6 @@ lib_b:= libsynchro.so libproc.so
 
 #libraries compilation and linking (version number -> *.so file)
 libsynchro.so : ../src/synchro.o
-	@ echo "Building $@"
-	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $< -pthread
-	@ ldconfig -n . -l $@.1.0
-	@ ln -sf $@.1 $@
-
-libproc.so : ../src/processes.o
 	@ echo "Building $@"
 	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $< -pthread
 	@ ldconfig -n . -l $@.1.0
