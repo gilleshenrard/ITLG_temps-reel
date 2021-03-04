@@ -1,4 +1,4 @@
-#include "reader.h"
+#include "readwrite.h"
 
 /****************************************************************************************/
 /*  I : readers type to allocate                                                        */
@@ -10,9 +10,9 @@
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int reader_alloc(reader_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+int reader_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
     //allocate the memory for the reader structure
-    *reader = calloc(1, sizeof(reader_t));
+    *reader = calloc(1, sizeof(thrw_t));
     if(!*reader){
         errno = ENOMEM;
         return -1;
@@ -34,7 +34,7 @@ int reader_alloc(reader_t** reader, readwrite_t* rw, const uint16_t thnum, uint1
 /*  O : /                                                                               */
 /****************************************************************************************/
 void *reader_handler(void *reader){
-    reader_t* rd = (reader_t*)reader;
+    thrw_t* rd = (thrw_t*)reader;
 
     do{
         usleep(1 + (rand() % 200));
@@ -50,7 +50,7 @@ void *reader_handler(void *reader){
 /*  O : /                                                                               */
 /****************************************************************************************/
 int displayData(void* reader){
-    reader_t* rd = (reader_t*)reader;
+    thrw_t* rd = (thrw_t*)reader;
 
     fprintf(stdout, "Reader n°%d reads : %d", rd->thNum, *((int*)rd->data));
 
