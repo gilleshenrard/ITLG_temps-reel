@@ -14,9 +14,10 @@
 #include <stdlib.h>
 #include "readwrite.h"
 
-int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t maximum);
-int threads_launch(pthread_t** th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters);
-int free_rw(thrw_t* arrays);
+int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum);
+int threads_launch(pthread_t* th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters);
+int threads_join(pthread_t threads[], thrw_t* rw_array, const uint16_t nbthreads);
+int free_rw(thrw_t* arrays, pthread_t* threads);
 
 int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
@@ -48,30 +49,34 @@ int main(int argc, char *argv[]){
 	}
 
     //initialise the readers/writers structures
-    if(init_rw(&rw_array, nbthreads, (void*)&data, maximum) < 0){
+    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum) < 0){
         fprintf(stderr, "main: error while initialising readers/writers\n");
         exit(EXIT_FAILURE);
     }
 
     //allocate and launch the threads
-    threads_launch(&th_array, rw_array, nbthreads, nbwriters);
+    threads_launch(th_array, rw_array, nbthreads, nbwriters);
+
+    //wait for all the threads to finish running
+    threads_join(th_array, rw_array, nbthreads);
 
     //free memory used by all the readers/writers
-    free_rw(rw_array);
+    free_rw(rw_array, th_array);
 
     exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************************/
 /*  I : Array of readers/writers to initialise                          				*/
+/*      Array of threads to initialise                                                  */
 /*		Amount of readers/writers to create												*/
 /*      Data shared by the readers/writers                                              */
 /*      Maximum value to reach by the readers/writers                                   */
-/*  P : Create the array of readers/writers with the proper values  					*/  
+/*  P : Create the array of readers/writers with the proper values + the array of thr.  */  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t maximum){
+int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum){
     readwrite_t* rw = NULL;
 
     //allocate a readwrite structure shared between all the threads
@@ -84,6 +89,15 @@ int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t
     *array = calloc(nbthreads, sizeof(thrw_t));
     if(!*array){
         rw_free(rw);
+        fprintf(stderr, "init_rw : %s\n", strerror(ENOMEM));
+        return -1;
+    }
+
+    //allocate the pthread array
+    *threads = calloc(nbthreads, sizeof(pthread_t));
+    if(!*threads){
+        rw_free(rw);
+        free(*array);
         fprintf(stderr, "init_rw : %s\n", strerror(ENOMEM));
         return -1;
     }
@@ -104,23 +118,67 @@ int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int threads_launch(pthread_t** th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters){
+int threads_launch(pthread_t* th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters){
+    uint16_t i = 0;
+    int ret = 0;
+
+    //launch all the threads
+    while(i < nbthreads){
+        ret = pthread_create(&th_array[i], NULL, (i < nbwriters ? writer_handler : reader_handler), (void*)&rw_array[i]);
+		if (ret){
+			fprintf(stderr, "threads_launch : %s", strerror(ret));
+			free_rw(rw_array, th_array);
+			exit(EXIT_FAILURE);
+		}
+        i++;
+    }
+
     return 0;
 }
 
 /****************************************************************************************/
-/*  I : Array of readers/writers to free                                  				*/
-/*  P : Deallocate the memory used by the readers/writers array       					*/  
+/*  I : Threads to join																	*/
+/*		readers/writers used in the threads												*/
+/*      Amount of threads previousely created                                           */
+/*  P : Wait for all the threads to finish running										*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int free_rw(thrw_t* array){
+int threads_join(pthread_t threads[], thrw_t* rw_array, const uint16_t nbthreads){
+	char *thret = NULL;
+	
+	for (uint16_t i = 0 ; i < nbthreads ; i++)
+	{
+		pthread_join(threads[i], (void**)&thret);
+		if(thret){
+			fprintf(stderr, "%s\n", thret);
+			free_rw(rw_array, threads);
+			free(thret);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	return 0;
+}
+
+/****************************************************************************************/
+/*  I : Array of readers/writers to free                                  				*/
+/*      Array of threads to free                                                        */
+/*  P : Deallocate the memory used by the readers/writers array and threads array		*/  
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int free_rw(thrw_t* array, pthread_t* threads){
     //deallocate the readwrite structure common to all readers/writers
     rw_free(array[0].rw);
     
     //deallocate the readers/writers array (all have just been assigned individually)
     free(array);
     array = NULL;
+
+    //deallocate the threads array
+    free(threads);
+    threads = NULL;
 
     return 0;
 }
