@@ -14,14 +14,15 @@
 #include <stdlib.h>
 #include "readwrite.h"
 
-int init_rw(thrw_t** array, const uint16_t nbthreads, const uint16_t nbwriters, const uint16_t maximum);
+int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t maximum);
+int free_rw(thrw_t** array, const uint16_t nbthreads);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
-    uint16_t nbthreads = 0, nbwriters = 0, maximum = 0;
+    uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
 
     //check if the fifo size and file name have been provided in the program arguments
 	if(argc != 4){
@@ -33,13 +34,28 @@ int main(int argc, char *argv[]){
 		nbthreads = atoi(argv[1]);
 		nbwriters = atoi(argv[2]);
 		maximum = atoi(argv[3]);
+
+        //check if the minimum amount of writers is correct
+        if(nbwriters < 1 || nbthreads < 2){
+            fprintf(stderr, "There must be at least 1 writers and 2 threads\n");
+            exit(EXIT_FAILURE);
+        }
+
+        //check if the amount of writers is correct
+        if(nbwriters >= nbthreads){
+            fprintf(stderr, "The amount of writers must be inferior to the amount of threads\n");
+            exit(EXIT_FAILURE);
+        }
 	}
 
     //initialise the readers/writers structures
-    if(init_rw(&rw_array, nbthreads, nbwriters, maximum) < 0){
+    if(init_rw(&rw_array, nbthreads, (void*)&data, maximum) < 0){
         fprintf(stderr, "main: error while initialising readers/writers\n");
         exit(EXIT_FAILURE);
     }
+
+    //free memory used by all the readers/writers
+    free_rw(&rw_array, nbthreads);
 
     exit(EXIT_SUCCESS);
 }
@@ -47,12 +63,43 @@ int main(int argc, char *argv[]){
 /****************************************************************************************/
 /*  I : Array of readers/writers to initialise                          				*/
 /*		Amount of readers/writers to create												*/
-/*      Amount of writers amongst the threads                                           */
+/*      Data shared by the readers/writers                                              */
 /*      Maximum value to reach by the readers/writers                                   */
 /*  P : Create the array of readers/writers with the proper values  					*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_rw(thrw_t** array, const uint16_t nbthreads, const uint16_t nbwriters, const uint16_t maximum){
+int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t maximum){
+    readwrite_t* rw = NULL;
+
+    //allocate a readwrite structure shared between all the threads
+    if(rw_alloc(&rw) < 0){
+        fprintf(stderr, "init_rw : %s\n", strerror(errno));
+        return -1;
+    }
+
+    //allocate memory for the whole readers/writers array
+    *array = calloc(nbthreads, sizeof(thrw_t));
+    if(!*array){
+        rw_free(rw);
+        fprintf(stderr, "init_rw : %s\n", strerror(ENOMEM));
+        return -1;
+    }
+
+    //allocate the readers/writers array
+    for(int i = 0 ; i < nbthreads ; i++)
+        readwrite_assign(&(*array)[i], rw, nbthreads, data, maximum);
+
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : Array of readers/writers to free                                  				*/
+/*      Amount of readers/writers in total                                              */
+/*  P : Deallocate the memory used by the readers/writers array       					*/  
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int free_rw(thrw_t** array, const uint16_t nbthreads){
     return 0;
 }
