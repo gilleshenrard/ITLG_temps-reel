@@ -49,6 +49,19 @@ int readwrite_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint
 }
 
 /****************************************************************************************/
+/*  I : readers/writer type to deallocate                                               */
+/*  P : Deallocate the memory used by a reader/writer                                   */
+/*  O : 0 if ok                                                                         */
+/*     -1 if error, and errno is set                                                    */
+/****************************************************************************************/
+int readwrite_free(thrw_t* reader){
+    free(reader);
+    reader = NULL;
+
+    return 0;
+}
+
+/****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
 /*  P : Wait for up to 200us, then display the thread number and the data value,        */
 /*          then stop when the data reached the max value                               */

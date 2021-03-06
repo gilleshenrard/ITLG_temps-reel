@@ -15,7 +15,7 @@
 #include "readwrite.h"
 
 int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t maximum);
-int free_rw(thrw_t** array, const uint16_t nbthreads);
+int free_rw(thrw_t* array, const uint16_t nbthreads);
 
 #ifdef __GNUC__
 # pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
     }
 
     //free memory used by all the readers/writers
-    free_rw(&rw_array, nbthreads);
+    free_rw(rw_array, nbthreads);
 
     exit(EXIT_SUCCESS);
 }
@@ -100,6 +100,13 @@ int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int free_rw(thrw_t** array, const uint16_t nbthreads){
+int free_rw(thrw_t* array, const uint16_t nbthreads){
+    //deallocate the readwrite structure common to all readers/writers
+    rw_free(array[0].rw);
+    
+    //deallocate the readers/writers array (all have just been assigned individually)
+    free(array);
+    array = NULL;
+
     return 0;
 }
