@@ -53,3 +53,4 @@ dkms.conf
 
 # directories including input files
 input/
+bin/
