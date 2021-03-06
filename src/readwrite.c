@@ -72,8 +72,8 @@ void *reader_handler(void *reader){
 
     do{
         usleep(1 + (rand() % 200));
-        rw_read(rd->rw, displayData, &rd);
-    }while (*rd->data <= rd->max);
+        rw_read(rd->rw, displayData, rd);
+    }while (*rd->data < rd->max);
 
     pthread_exit(NULL);
 }
@@ -86,7 +86,7 @@ void *reader_handler(void *reader){
 int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
 
-    fprintf(stdout, "Reader n°%d reads : %d", rd->thNum, *((int*)rd->data));
+    fprintf(stdout, "Reader n°%d reads : %hd\n", rd->thNum, *((int*)rd->data));
 
     return 0;
 }
@@ -102,8 +102,9 @@ void *writer_handler(void *writer){
 
     do{
         usleep(1 + (rand() % 400));
-        rw_write(wr->rw, updateData, &wr);
-    }while (*wr->data <= wr->max);
+        if(*wr->data < wr->max)
+            rw_write(wr->rw, updateData, wr);
+    }while (*wr->data < wr->max);
 
     pthread_exit(NULL);
 }
@@ -119,7 +120,7 @@ int updateData(void* writer){
 
     *data = (*data) + 1;
 
-    fprintf(stdout, "Writer n°%d writes : %d", wr->thNum, *data);
+    fprintf(stdout, "Writer n°%d writes : %hd\n", wr->thNum, *data);
 
     return 0;
 }
