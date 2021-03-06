@@ -48,6 +48,9 @@ int main(int argc, char *argv[]){
         }
 	}
 
+    //initialise time randimisation
+	srand(time(NULL));
+
     //initialise the readers/writers structures
     if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum) < 0){
         fprintf(stderr, "main: error while initialising readers/writers\n");
