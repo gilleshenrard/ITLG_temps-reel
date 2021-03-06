@@ -19,10 +19,31 @@ int readwrite_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint
     }
 
     //populate its fields
-    (*reader)->rw = rw;
-    (*reader)->thNum = thnum;
-    (*reader)->data = data;
-    (*reader)->max = max;
+    return readwrite_assign(*reader, rw, thnum, data, max);
+}
+
+/****************************************************************************************/
+/*  I : readers/writer type to allocate                                                 */
+/*      readers/writers type used to synchronise readers                                */
+/*      Thread number                                                                   */
+/*      Pointer to the data shared between threads                                      */
+/*      Max value the data can take                                                     */
+/*  P : Fill the readwrite structure fields                                             */
+/*  O : 0 if ok                                                                         */
+/*     -1 if error, and errno is set                                                    */
+/****************************************************************************************/
+int readwrite_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+    //check if the readwrite structure has been allocated
+    if(!reader){
+        errno = ENOMEM;
+        return -1;
+    }
+
+    //populate the readwrite structure fields
+    reader->rw = rw;
+    reader->thNum = thnum;
+    reader->data = data;
+    reader->max = max;
 
     return 0;
 }
