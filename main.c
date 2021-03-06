@@ -87,8 +87,8 @@ int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t
     }
 
     //allocate the readers/writers array
-    for(int i = 0 ; i < nbthreads ; i++)
-        readwrite_assign(&(*array)[i], rw, nbthreads, data, maximum);
+    for(uint16_t i = 0 ; i < nbthreads ; i++)
+        readwrite_assign(&(*array)[i], rw, i, data, maximum);
 
     return 0;
 }
