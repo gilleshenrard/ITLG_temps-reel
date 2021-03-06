@@ -5,18 +5,22 @@ cbin := bin
 
 #flags necessary to the compilation
 CC := gcc
-APP := app1
-CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead) -Ilib/cstructures/include
-LFLAGS:=
+APP := readerswriters
+CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead)
+LFLAGS:= -lsynchro -lreadwrite -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
 
 #executables compilation
-$(APP): 
+$(APP): blib 
 		@ echo "Building $(APP)"
 		@ mkdir -p bin
-		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ main.c $(LFLAGS) $(CFLAGS)
+		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ main.c $(CFLAGS) $(LFLAGS)
 
 #overall functions
+.PHONY: blib
+blib:
+	@ $(MAKE) -f build.mk -C$(clib) all
+
 .PHONY: clean
 clean:
 	@ echo "cleaning binaries"
