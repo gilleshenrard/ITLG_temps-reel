@@ -15,13 +15,12 @@
 #include "readwrite.h"
 
 int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t maximum);
-int free_rw(thrw_t* array, const uint16_t nbthreads);
+int threads_launch(pthread_t** th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters);
+int free_rw(thrw_t* arrays);
 
-#ifdef __GNUC__
-# pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
 int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
+    pthread_t* th_array = NULL;
     uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
 
     //check if the fifo size and file name have been provided in the program arguments
@@ -54,8 +53,11 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
+    //allocate and launch the threads
+    threads_launch(&th_array, rw_array, nbthreads, nbwriters);
+
     //free memory used by all the readers/writers
-    free_rw(rw_array, nbthreads);
+    free_rw(rw_array);
 
     exit(EXIT_SUCCESS);
 }
@@ -94,13 +96,25 @@ int init_rw(thrw_t** array, const uint16_t nbthreads, void* data, const uint16_t
 }
 
 /****************************************************************************************/
+/*  I : Threads array to allocate and launch                              				*/
+/*      Readers/writers array to use in the threads                                     */
+/*      Total amount of threads                                                         */
+/*      Amount of writers in the threads                                                */
+/*  P : Allocate all the threads as readers or writers and launch them all  			*/  
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int threads_launch(pthread_t** th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters){
+    return 0;
+}
+
+/****************************************************************************************/
 /*  I : Array of readers/writers to free                                  				*/
-/*      Amount of readers/writers in total                                              */
 /*  P : Deallocate the memory used by the readers/writers array       					*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int free_rw(thrw_t* array, const uint16_t nbthreads){
+int free_rw(thrw_t* array){
     //deallocate the readwrite structure common to all readers/writers
     rw_free(array[0].rw);
     
