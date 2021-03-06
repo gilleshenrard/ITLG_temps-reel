@@ -15,8 +15,8 @@
 #include "readwrite.h"
 
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum);
-int threads_launch(pthread_t* th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters);
-int threads_join(pthread_t threads[], thrw_t* rw_array, const uint16_t nbthreads);
+int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters);
+int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
 
 int main(int argc, char *argv[]){
@@ -118,7 +118,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int threads_launch(pthread_t* th_array, thrw_t* rw_array, const uint16_t nbthreads, const uint16_t nbwriters){
+int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters){
     uint16_t i = 0;
     int ret = 0;
 
@@ -144,7 +144,7 @@ int threads_launch(pthread_t* th_array, thrw_t* rw_array, const uint16_t nbthrea
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int threads_join(pthread_t threads[], thrw_t* rw_array, const uint16_t nbthreads){
+int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads){
 	char *thret = NULL;
 	
 	for (uint16_t i = 0 ; i < nbthreads ; i++)
