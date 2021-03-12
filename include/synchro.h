@@ -13,8 +13,10 @@ typedef struct{
 
 typedef struct{
     pthread_mutex_t mutex;          //mutex used internally to protect the counters manipulations
-    sem_t           items;          //semaphore counting how many items are available the FIFO queue to pop
-    sem_t           spaces;         //semaphore counting the remaining free slots in the FIFO queue 
+    pthread_cond_t  cond_notfull;   //conditional variable indicating the FIFO is not full anymore
+    pthread_cond_t  cond_notempty;  //conditional variable indicating the FIFO is not empty anymore
+    uint16_t        items;          //counter of items available the FIFO queue to pop
+    uint16_t        spaces;         //counter of remaining free slots in the FIFO queue 
     uint16_t        nb_items;       //size of the buffer (amount of slots)
     uint16_t        item_sz;        //Size of an item
     uint16_t        indexIn;        //index of the next slot in which an item can be pushed

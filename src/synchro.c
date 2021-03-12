@@ -167,8 +167,8 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
         return -1;
     }
 
-    //initialise the items semaphore to 0
-    if(sem_init(&(*fifo)->items, 0, 0) < 0){
+    //initialise the FIFO full conditional variable
+    if(pthread_cond_init(&(*fifo)->cond_notfull, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&(*fifo)->mutex);
         free(*fifo);
@@ -176,10 +176,10 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
         return -1;
     }
 
-    //initialise the spaces semaphore to the amount of slots
-    if(sem_init(&(*fifo)->spaces, 0, amount) < 0){
+    //initialise the FIFO empty conditional variable
+    if(pthread_cond_init(&(*fifo)->cond_notempty, NULL) < 0){
         errtmp = errno;
-        sem_destroy (&(*fifo)->items);
+        pthread_cond_destroy(&(*fifo)->cond_notfull);
         pthread_mutex_destroy (&(*fifo)->mutex);
         free(*fifo);
         errno = errtmp;
@@ -200,6 +200,8 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
     (*fifo)->item_sz = elemsz;
     (*fifo)->indexIn = 0;
     (*fifo)->indexOut = 0;
+    (*fifo)->items = 0;
+    (*fifo)->spaces = amount;
 
     return 0;
 }
@@ -212,9 +214,9 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
 /****************************************************************************************/
 int fifo_free(fifo_t* fifo){
     if(fifo){
-        sem_destroy (&fifo->spaces);
-        sem_destroy (&fifo->items);
-        pthread_mutex_destroy (&fifo->mutex);
+        pthread_cond_destroy(&fifo->cond_notfull);
+        pthread_cond_destroy(&fifo->cond_notempty);
+        pthread_mutex_destroy(&fifo->mutex);
         free(fifo);
     }
 
@@ -230,18 +232,25 @@ int fifo_free(fifo_t* fifo){
 /*     -1 otherwise                                                                     */
 /****************************************************************************************/
 int fifo_push(fifo_t* fifo, void* elem){
-    //wait for a free slot
-    sem_wait(&fifo->spaces);
-
-    //insert the new element + increment the input index + rollback to 0 if end of circ. buffer
+    //lock the mutex for the current thread
     pthread_mutex_lock(&fifo->mutex);
+    
+        //wait for a free slot
+        while(!fifo->spaces)
+            pthread_cond_wait(&fifo->cond_notfull, &fifo->mutex);
+
+        //insert the new element + increment the input index + rollback to 0 if end of circ. buffer
         memcpy(fifo->buffer + (fifo->indexIn * fifo->item_sz), elem, fifo->item_sz);
         fifo->indexIn++;
         fifo->indexIn %= fifo->nb_items; 
-    pthread_mutex_unlock(&fifo->mutex);
 
-    //increment the amount of items in the FIFO queue
-    sem_post(&fifo->items);
+        //increment the amount of items in the FIFO queue and decrement the amount of free space
+        fifo->items++;
+        fifo->spaces--;
+
+    //notify all the threads that the mutex is free and unlock it
+    pthread_cond_signal(&fifo->cond_notempty);
+    pthread_mutex_unlock(&fifo->mutex);
 
     return 0;
 }
@@ -260,19 +269,26 @@ void* fifo_pop(fifo_t* fifo){
     if(!ret)
         return NULL;
 
-    //wait for an item in the FIFO queue
-    sem_wait(&fifo->items);
-
-    //get the address of the element to pop + increment the output index
-    //  + rollback to 0 if end of circ. buffer
+    //lock the mutex for the current thread
     pthread_mutex_lock(&fifo->mutex);
+
+        //wait for an item in the FIFO queue
+        while(!fifo->items)
+            pthread_cond_wait(&fifo->cond_notempty, &fifo->mutex);
+
+        //get the address of the element to pop + increment the output index
+        //  + rollback to 0 if end of circ. buffer
         memcpy(ret, fifo->buffer + (fifo->indexOut * fifo->item_sz), fifo->item_sz);
         fifo->indexOut++;
-        fifo->indexOut %= fifo->nb_items; 
-    pthread_mutex_unlock(&fifo->mutex);
+        fifo->indexOut %= fifo->nb_items;
 
-    //increment the amount of items in the FIFO queue
-    sem_post(&fifo->spaces);
+        //increment the amount of spaces available and decrement the amount of items in the FIFO
+        fifo->items--;
+        fifo->spaces++;
+
+    //notify all the threads that the mutex is free and unlock it
+    pthread_cond_signal(&fifo->cond_notfull);
+    pthread_mutex_unlock(&fifo->mutex);
 
     return ret;
 }
