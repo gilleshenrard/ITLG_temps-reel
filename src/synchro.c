@@ -3,8 +3,12 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 04/03/2021
+** Last modified : 12/03/2021
 */
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include "synchro.h"
 
 /****************************************************************************************/

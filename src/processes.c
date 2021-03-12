@@ -4,8 +4,15 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 27/02/2021
+** Last modified : 12/03/2021
 */
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "processes.h"
 
 /****************************************************************************************/

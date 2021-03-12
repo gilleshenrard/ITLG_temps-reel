@@ -1,11 +1,7 @@
 #ifndef SYNCHRO_THREAD_INCLUDED
 #define SYNCHRO_THREAD_INCLUDED
-#include <pthread.h>
-#include <semaphore.h>
 #include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include <semaphore.h>
 
 typedef struct{
     pthread_mutex_t mutex;          //mutex used internally to protect the counters manipulations

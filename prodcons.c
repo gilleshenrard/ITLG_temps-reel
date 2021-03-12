@@ -8,8 +8,13 @@
 **			on screen
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 27/02/2021
+** Last modified : 12/03/2021
 */
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <stdio.h>
 #include "processes.h"
 
 int init_processes(void* processes[], const uint16_t* fifosize, const char* filename);
