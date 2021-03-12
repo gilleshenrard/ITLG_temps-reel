@@ -46,8 +46,8 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
         return -1;
     }
 
-    //initialise the first semaphore used
-    if(sem_init(&(*bar)->turnstile1, 0, 0) < 0){
+    //initialise the barrier turnstile 1 conditional variable
+    if(pthread_cond_init(&(*bar)->cond_turnstile1, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&(*bar)->mutex);
         free(*bar);
@@ -55,10 +55,10 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
         return -1;
     }
 
-    //initialise the second semaphore used
-    if(sem_init(&(*bar)->turnstile2, 0, 1) < 0){
+    //initialise the barrier turnstile 2 conditional variable
+    if(pthread_cond_init(&(*bar)->cond_turnstile2, NULL) < 0){
         errtmp = errno;
-        sem_destroy (&(*bar)->turnstile1);
+        pthread_cond_destroy(&(*bar)->cond_turnstile1);
         pthread_mutex_destroy (&(*bar)->mutex);
         free(*bar);
         errno = errtmp;
@@ -67,6 +67,9 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
 
     //set the amount of threads (overall) to synchronise
     (*bar)->th_nb = nb;
+    (*bar)->th_count = 0;
+    (*bar)->turnstile1 = 0;
+    (*bar)->turnstile2 = 1;
 
     return 0;
 }
@@ -80,8 +83,8 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
 int barrier_free(barrier_t* bar){
     if(bar){
         pthread_mutex_destroy (&bar->mutex);
-        sem_destroy (&bar->turnstile1);
-        sem_destroy (&bar->turnstile2);
+        pthread_cond_destroy(&bar->cond_turnstile1);
+        pthread_cond_destroy(&bar->cond_turnstile2);
         free(bar);
         bar = NULL;
     }
