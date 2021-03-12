@@ -17,7 +17,7 @@ typedef struct{
     pthread_cond_t  cond_notempty;  //conditional variable indicating the FIFO is not empty anymore
     uint16_t        items;          //counter of items available the FIFO queue to pop
     uint16_t        spaces;         //counter of remaining free slots in the FIFO queue 
-    uint16_t        nb_items;       //size of the buffer (amount of slots)
+    uint16_t        amount;       //size of the buffer (amount of slots)
     uint16_t        item_sz;        //Size of an item
     uint16_t        indexIn;        //index of the next slot in which an item can be pushed
     uint16_t        indexOut;       //index of the next slot from which an item can be popped

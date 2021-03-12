@@ -196,7 +196,7 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
 
     //set the amount of slots available in the FIFO, as well as
     //  the input and ouput indexes
-    (*fifo)->nb_items = amount;
+    (*fifo)->amount = amount;
     (*fifo)->item_sz = elemsz;
     (*fifo)->indexIn = 0;
     (*fifo)->indexOut = 0;
@@ -242,7 +242,7 @@ int fifo_push(fifo_t* fifo, void* elem){
         //insert the new element + increment the input index + rollback to 0 if end of circ. buffer
         memcpy(fifo->buffer + (fifo->indexIn * fifo->item_sz), elem, fifo->item_sz);
         fifo->indexIn++;
-        fifo->indexIn %= fifo->nb_items; 
+        fifo->indexIn %= fifo->amount; 
 
         //increment the amount of items in the FIFO queue and decrement the amount of free space
         fifo->items++;
@@ -280,7 +280,7 @@ void* fifo_pop(fifo_t* fifo){
         //  + rollback to 0 if end of circ. buffer
         memcpy(ret, fifo->buffer + (fifo->indexOut * fifo->item_sz), fifo->item_sz);
         fifo->indexOut++;
-        fifo->indexOut %= fifo->nb_items;
+        fifo->indexOut %= fifo->amount;
 
         //increment the amount of spaces available and decrement the amount of items in the FIFO
         fifo->items--;
