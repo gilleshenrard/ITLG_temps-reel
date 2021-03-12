@@ -10,14 +10,30 @@ LFLAGS:= -lsynchro -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
 
 #executables compilation
-prodcons: blib 
+prodcons: bproc 
 		@ echo "Building $@"
 		@ mkdir -p bin
 		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lproc $(LFLAGS)
 
+runners: brun
+		@ echo "Building $@"
+		@ mkdir -p bin
+		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lrunner $(LFLAGS)
+
 #overall functions
-.PHONY: blib
-blib:
+.PHONY: all
+all: prodcons runners
+
+.PHONY: brun
+brun:
+	@ $(MAKE) -f build.mk -C$(clib) lib_run
+
+.PHONY: bproc
+bproc:
+	@ $(MAKE) -f build.mk -C$(clib) lib_proc
+
+.PHONY: ball
+ball:
 	@ $(MAKE) -f build.mk -C$(clib) all
 
 .PHONY: clean
