@@ -6,14 +6,14 @@ cbin := bin
 #flags necessary to the compilation
 CC := gcc
 CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead)
-LFLAGS:= -lsynchro -lproc -pthread
+LFLAGS:= -lsynchro -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
 
 #executables compilation
 prodcons: blib 
 		@ echo "Building $@"
 		@ mkdir -p bin
-		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) $(LFLAGS)
+		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lproc $(LFLAGS)
 
 #overall functions
 .PHONY: blib
