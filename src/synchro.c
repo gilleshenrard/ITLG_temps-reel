@@ -3,7 +3,7 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 26/02/2021
+** Last modified : 04/03/2021
 */
 #include "synchro.h"
 
@@ -269,6 +269,181 @@ void* fifo_pop(fifo_t* fifo){
 
     //increment the amount of items in the FIFO queue
     sem_post(&fifo->spaces);
+
+    return ret;
+}
+
+/****************************************************************************************/
+/*  I : lightswitch to lock                                                             */
+/*      semaphore used to block readers or writers                                      */
+/*  P : Lock the lightswitch, allowing either the readers or the writers to act         */
+/*          sequentially, before allowing the readers/writers to act on their side      */
+/*  O : 0 if ok                                                                         */
+/*     -1 if error                                                                      */
+/****************************************************************************************/
+int lightswitch_lock(lightswitch_t* light, sem_t* sem){
+    //make sure parameters are not NULL
+    if(!light || !sem)
+        return -1;
+    
+    //increment the counter, and lock
+    //  the semaphore if at least one thread reaches the switch
+    pthread_mutex_lock(&light->mutex);
+        light->counter++;
+        if(light->counter == 1)
+            sem_wait(sem);
+    pthread_mutex_unlock(&light->mutex);
+    
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : lightswitch to unlock                                                           */
+/*      semaphore used to block readers or writers                                      */
+/*  P : Unlock the lightswitch, to release the readers/writers which had been locked    */
+/*  O : 0 if ok                                                                         */
+/*     -1 if error                                                                      */
+/****************************************************************************************/
+int lightswitch_unlock(lightswitch_t* light, sem_t* sem){
+    //make sure parameters are not NULL
+    if(!light || !sem)
+        return -1;
+    
+    //decrement the counter, and unlock
+    //  the semaphore if all threads are done
+    pthread_mutex_lock(&light->mutex);
+        light->counter--;
+        if(light->counter == 0)
+            sem_post(sem);
+    pthread_mutex_unlock(&light->mutex);
+    
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type to allocate                                                */
+/*  P : Allocate a readers/writers type in memory                                       */
+/*  O : 0 if ok                                                                         */
+/*     -1 otherwise and errno is set                                                    */
+/****************************************************************************************/
+int rw_alloc(readwrite_t** rw){
+    int errtmp = 0;
+
+    //allocate the memory for the rw structure
+    *rw = calloc(1, sizeof(readwrite_t));
+    if(!*rw){
+        errno = ENOMEM;
+        return -1;
+    }
+
+    //initialise the internal mutex for the readers
+    if(pthread_mutex_init(& (*rw)->readSwitch.mutex, NULL) < 0){
+        errtmp = errno;
+        free(*rw);
+        errno = errtmp;
+        return -1;
+    }
+
+    //initialise the internal mutex for the writers
+    if(pthread_mutex_init(& (*rw)->writeSwitch.mutex, NULL) < 0){
+        errtmp = errno;
+        pthread_mutex_destroy (& (*rw)->readSwitch.mutex);
+        free(*rw);
+        errno = errtmp;
+        return -1;
+    }
+
+    //initialise semaphore which excludes the readers
+    if(sem_init(&(*rw)->noReaders, 0, 1) < 0){
+        errtmp = errno;
+        pthread_mutex_destroy (& (*rw)->writeSwitch.mutex);
+        pthread_mutex_destroy (& (*rw)->readSwitch.mutex);
+        free(*rw);
+        errno = errtmp;
+        return -1;
+    }
+
+    //initialise semaphore which excludes the writers
+    if(sem_init(&(*rw)->noWriters, 0, 1) < 0){
+        errtmp = errno;
+        rw_free(*rw);
+        errno = errtmp;
+        return -1;
+    }
+
+    //initialise the lightswitches counters
+    (*rw)->readSwitch.counter = 0;
+    (*rw)->writeSwitch.counter = 0;
+
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type to deallocate                                              */
+/*  P : Free the memory used by a readers/writers type                                  */
+/*  O : 0 if ok                                                                         */
+/*     -1 otherwise                                                                     */
+/****************************************************************************************/
+int rw_free(readwrite_t* rw){
+    if(rw){
+        sem_destroy (&rw->noWriters);
+        sem_destroy (&rw->noReaders);
+        pthread_mutex_destroy (&rw->writeSwitch.mutex);
+        pthread_mutex_destroy (&rw->readSwitch.mutex);
+        free(rw);
+    }
+
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type used in the synchro                                        */
+/*      action for the readers to perform                                               */
+/*  P : Lock the data for the current readers to perform an action (will be interrupt.  */
+/*          when a writer shows up (they have the priority))                            */
+/*  O : return code of the action for the readers to perform                            */
+/****************************************************************************************/
+int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg){
+    int ret = 0;
+    
+    //make the first reader lock the switch to forbid any writer to perform
+    //  an action
+    sem_wait(&rw->noReaders);
+        lightswitch_lock(&rw->readSwitch, &rw->noWriters);
+    sem_post(&rw->noReaders);
+
+        //perform a reader's action
+        if(doAction)
+            ret = (*doAction)(action_arg);
+    
+    //make the last reader unlock the switch and allow writers to act
+    lightswitch_unlock(&rw->readSwitch, &rw->noWriters);
+    
+    return ret;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type used in the synchro                                        */
+/*      action for the writers to perform                                               */
+/*  P : Lock the data for the current writers to perform an action (will interrupt.     */
+/*          the readers)                                                                */
+/*  O : return code of the action for the writers to perform                            */
+/****************************************************************************************/
+int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg){
+    int ret = 0;
+
+    //make the first writer lock the switch to forbid any reader to perform
+    //  an action
+    lightswitch_lock(&rw->writeSwitch, &rw->noReaders);
+        sem_wait(&rw->noWriters);
+
+            //perform a writers's action
+            if(doAction)
+                ret = (*doAction)(action_arg);
+
+    //make the last writer unlock the switch and allow readers to act
+        sem_post(&rw->noWriters);
+    lightswitch_unlock(&rw->writeSwitch, &rw->noReaders);
 
     return ret;
 }

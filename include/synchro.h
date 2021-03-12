@@ -26,6 +26,18 @@ typedef struct{
     void*           buffer;         //address of the actual buffer
 }fifo_t;
 
+typedef struct{
+    uint16_t        counter;        //counter to the amount of threads in the lightswitch
+    pthread_mutex_t mutex;          //mutex allowing synchronisation of the lightswitch
+}lightswitch_t;
+
+typedef struct{
+    lightswitch_t   readSwitch;     //lightswitch used to synchronise the readers (first locks, last unlocks)
+    lightswitch_t   writeSwitch;    //lightswitch used to synchronise the writers (first locks, last unlocks)
+    sem_t           noReaders;      //semaphore used to exclude readers
+    sem_t           noWriters;      //semaphore used to exclude writers
+}readwrite_t;
+
 //barrier synchronisation functions
 int barrier_alloc(barrier_t** bar, const uint16_t nb);
 int barrier_free(barrier_t* bar);
@@ -36,4 +48,12 @@ int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount);
 int fifo_free(fifo_t* fifo);
 int fifo_push(fifo_t* fifo, void* elem);
 void* fifo_pop(fifo_t* fifo);
+
+//readers-writers synchronisation functions
+int lightswitch_lock(lightswitch_t* light, sem_t* sem);
+int lightswitch_unlock(lightswitch_t* light, sem_t* sem);
+int rw_alloc(readwrite_t** rw);
+int rw_free(readwrite_t* rw);
+int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
+int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg);
 #endif
