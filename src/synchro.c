@@ -3,7 +3,7 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 12/03/2021
+** Last modified : 14/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
     (*bar)->th_nb = nb;
     (*bar)->th_count = 0;
     (*bar)->turnstile1 = 0;
-    (*bar)->turnstile2 = 1;
+    (*bar)->turnstile2 = 0;
 
     return 0;
 }
@@ -102,35 +102,49 @@ int barrier_free(barrier_t* bar){
 int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     int ret = 0;
     
-    //update the threads count in the barrier
+    //increment the threads count in the barrier
     pthread_mutex_lock(&bar->mutex);
         bar->th_count++;
-        if(bar->th_count == bar->th_nb){
-            sem_wait(&bar->turnstile2);
-            sem_post(&bar->turnstile1);
+
+        //if all threads arrived, unlock turnstile1
+        //  and lock turnstile2
+        if(bar->th_count >= bar->th_nb){
+            pthread_cond_broadcast(&bar->cond_turnstile1);
+            bar->turnstile1 = 1;
+            bar->turnstile2 = 0;
         }
     pthread_mutex_unlock(&bar->mutex);
 
-    //synchronise all the threads in a first rendezvous
-    sem_wait(&bar->turnstile1);
-    sem_post(&bar->turnstile1);
+    //synchronise all the threads at the turnstile1
+    pthread_mutex_lock(&bar->mutex);
+        while(!bar->turnstile1)
+            pthread_cond_wait(&bar->cond_turnstile1, &bar->mutex);
+        pthread_cond_signal(&bar->cond_turnstile1);
+    pthread_mutex_unlock(&bar->mutex);
 
     //perform the critical procedure
     if(doAction)
         ret = (*doAction)(action_arg);
 
-    //cleanup the threads count
+    //decrement the threads count
     pthread_mutex_lock(&bar->mutex);
         bar->th_count--;
+
+        //if all threads are done with the critical section,
+        //  block turnstile1 (to be reused) and unlock turnstile2
         if(!bar->th_count){
-            sem_wait(&bar->turnstile1);
-            sem_post(&bar->turnstile2);
+            pthread_cond_signal(&bar->cond_turnstile2);
+            bar->turnstile1 = 0;
+            bar->turnstile2 = 1;
         }
     pthread_mutex_unlock(&bar->mutex);
 
-    //synchronise all the threads in a second rendezvous
-    sem_wait(&bar->turnstile2);
-    sem_post(&bar->turnstile2);
+    //synchronise all the threads in a second turnstile
+    pthread_mutex_lock(&bar->mutex);
+        while(!bar->turnstile2)
+            pthread_cond_wait(&bar->cond_turnstile2, &bar->mutex);
+        pthread_cond_signal(&bar->cond_turnstile2);
+    pthread_mutex_unlock(&bar->mutex);
     
     return ret;
 }
