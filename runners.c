@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 
 	//check if the amount of runners and laps to run have been provided as program arguments
 	if(argc != 3){
-		fprintf(stderr, "usage : bin/runners nb_runners nb_laps");
+		fprintf(stderr, "usage : bin/runners nb_runners nb_laps\n");
 		exit(EXIT_FAILURE);
 	}
 	else
