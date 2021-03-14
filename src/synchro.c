@@ -102,8 +102,9 @@ int barrier_free(barrier_t* bar){
 int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     int ret = 0;
     
-    //increment the threads count in the barrier
+    //wait for all the threads at the turnstile1
     pthread_mutex_lock(&bar->mutex);
+        //increment the threads count in the barrier
         bar->th_count++;
 
         //if all threads arrived, unlock turnstile1
@@ -113,10 +114,8 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
             bar->turnstile1 = 1;
             bar->turnstile2 = 0;
         }
-    pthread_mutex_unlock(&bar->mutex);
 
-    //synchronise all the threads at the turnstile1
-    pthread_mutex_lock(&bar->mutex);
+        //synchronise all the threads at the turnstile1
         while(!bar->turnstile1)
             pthread_cond_wait(&bar->cond_turnstile1, &bar->mutex);
         pthread_cond_signal(&bar->cond_turnstile1);
@@ -126,21 +125,20 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     if(doAction)
         ret = (*doAction)(action_arg);
 
-    //decrement the threads count
+    //wait for all the threads at the turnstile1
     pthread_mutex_lock(&bar->mutex);
+        //decrement the threads count
         bar->th_count--;
 
         //if all threads are done with the critical section,
-        //  block turnstile1 (to be reused) and unlock turnstile2
+        //  lock turnstile1 (to be reused) and unlock turnstile2
         if(!bar->th_count){
             pthread_cond_signal(&bar->cond_turnstile2);
             bar->turnstile1 = 0;
             bar->turnstile2 = 1;
         }
-    pthread_mutex_unlock(&bar->mutex);
 
-    //synchronise all the threads in a second turnstile
-    pthread_mutex_lock(&bar->mutex);
+        //synchronise all the threads  at the turnstile2
         while(!bar->turnstile2)
             pthread_cond_wait(&bar->cond_turnstile2, &bar->mutex);
         pthread_cond_signal(&bar->cond_turnstile2);
