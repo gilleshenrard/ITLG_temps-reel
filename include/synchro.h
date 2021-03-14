@@ -7,8 +7,7 @@ typedef struct{
     pthread_mutex_t mutex;              //mutex used internally to protect the counters manipulations
     pthread_cond_t  cond_turnstile1;    //conditional variable indicating the turnstile 1 has been reached
     pthread_cond_t  cond_turnstile2;    //conditional variable indicating the turnstile 2 has been reached
-    uint16_t        turnstile1;         //Amount of threads which have reached the turnstile 1
-    uint16_t        turnstile2;         //Amount of threads which have reached the turnstile 2
+    uint8_t         flipflop;           //variable managing turnstiles status (0 = 1 open, 2 closed ; 1 = 1 closed, 2 open)
     uint16_t        th_count;           //Amount of threads currently waiting in the barrier sas
     uint16_t        th_nb;              //Total amount of threads to synchronise in the barrier
 }barrier_t;

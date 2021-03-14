@@ -68,8 +68,7 @@ int barrier_alloc(barrier_t** bar, const uint16_t nb){
     //set the amount of threads (overall) to synchronise
     (*bar)->th_nb = nb;
     (*bar)->th_count = 0;
-    (*bar)->turnstile1 = 0;
-    (*bar)->turnstile2 = 0;
+    (*bar)->flipflop = 1;   //turnstile 1 closed and 2 open by default
 
     return 0;
 }
@@ -111,12 +110,11 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
         //  and lock turnstile2
         if(bar->th_count >= bar->th_nb){
             pthread_cond_broadcast(&bar->cond_turnstile1);
-            bar->turnstile1 = 1;
-            bar->turnstile2 = 0;
+            bar->flipflop = 0;
         }
 
         //synchronise all the threads at the turnstile1
-        while(!bar->turnstile1)
+        while(bar->flipflop)
             pthread_cond_wait(&bar->cond_turnstile1, &bar->mutex);
         pthread_cond_signal(&bar->cond_turnstile1);
     pthread_mutex_unlock(&bar->mutex);
@@ -134,12 +132,11 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
         //  lock turnstile1 (to be reused) and unlock turnstile2
         if(!bar->th_count){
             pthread_cond_signal(&bar->cond_turnstile2);
-            bar->turnstile1 = 0;
-            bar->turnstile2 = 1;
+            bar->flipflop = 1;
         }
 
         //synchronise all the threads  at the turnstile2
-        while(!bar->turnstile2)
+        while(!bar->flipflop)
             pthread_cond_wait(&bar->cond_turnstile2, &bar->mutex);
         pthread_cond_signal(&bar->cond_turnstile2);
     pthread_mutex_unlock(&bar->mutex);
