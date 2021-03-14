@@ -20,6 +20,11 @@ runners: brun
 		@ mkdir -p bin
 		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lrunner $(LFLAGS)
 
+readerswriters: brw
+		@ echo "Building $@"
+		@ mkdir -p bin
+		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lreadwrite $(LFLAGS)
+
 #overall functions
 .PHONY: all
 all: prodcons runners
@@ -31,6 +36,10 @@ brun:
 .PHONY: bproc
 bproc:
 	@ $(MAKE) -f build.mk -C$(clib) lib_proc
+
+.PHONY: brw
+brw:
+	@ $(MAKE) -f build.mk -C$(clib) lib_rw
 
 .PHONY: ball
 ball:
