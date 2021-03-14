@@ -1,3 +1,11 @@
+/*
+** readwrite.c
+** Library regrouping functions which are specific to readers/writers threads
+**      (as described in the assignment)
+** ----------------------------------------------------
+** Made by Gilles Henrard
+** Last modified : 14/03/2021
+*/
 #include "readwrite.h"
 #include <unistd.h>
 #include <stdio.h>
