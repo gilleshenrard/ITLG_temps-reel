@@ -4,13 +4,12 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 17/02/2021
+** Last modified : 15/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <time.h>
 #include "runner.h"
 
 /****************************************************************************************/
