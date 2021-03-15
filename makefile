@@ -27,7 +27,7 @@ readerswriters: brw
 
 #overall functions
 .PHONY: all
-all: prodcons runners readerswriters
+all: ball prodcons runners readerswriters
 
 .PHONY: brun
 brun:
