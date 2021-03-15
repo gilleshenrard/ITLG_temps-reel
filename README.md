@@ -1,20 +1,20 @@
 # Temps Reel
-## Exercise 2 - Producers-consumers
+## Exercise 4 - Condition Variables
 ---
 ### 1. Intro
-The aim of this assignment is to implement the FIFO multithreading synchronisation technique, as well as
-the Producers-Consumers problem.
+The aim of this assignment is to re-implement the previous exercises, by replacing semaphores by condition variables.
+The previous assignments are the following :
+* [Runners (Barrier problem)](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment1)
+* [Producers-Consumers](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment2)
+* [Readers-Writers](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment3) 
 
-3 procedures are implemented as 3 threads :
-- The first one reads a text file character by character and pushes each character in a FIFO queue.
-- The second one pops each character from the first FIFO, and outputs it as upper cased in a second FIFO.
-- The third one pops each upper case character from the second FIFO and outputs it on the screen.
-
-The code can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment2)
+The code for the current assignment can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment4)
 
 Use :
 ```shell
+    bin/runners nb_runners nb_laps
     bin/prodcons sz_fifo filename
+    bin/readerswriters nbthreads nbwriters maximum
 ```
 
 ### 2. Current features
@@ -30,31 +30,22 @@ Use :
     int fifo_free(fifo_t* fifo);
     int fifo_push(fifo_t* fifo, void* elem);
     void* fifo_pop(fifo_t* fifo);
-```
 
-* ProdCons functions :
-```C
-    //file reading functions
-    void *readproc_handler(void *proc);
-    int readproc_alloc(readproc_t** readproc, fifo_t* readfifo, const char* filename);
-
-    //characters handling functions
-    void *calcproc_handler(void *proc);
-    int calcproc_alloc(calcproc_t** calcproc, fifo_t* readfifo, fifo_t* dispfifo);
-
-    //characters printing
-    void *dispproc_handler(void *proc);
-    int dispproc_alloc(dispproc_t** dispproc, fifo_t* dispfifo);
+    //readers-writers synchronisation functions
+    int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
+    int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
+    int rw_alloc(readwrite_t** rw);
+    int rw_free(readwrite_t* rw);
+    int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
+    int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg);
 ```
 
 ### 3. Changes
-* processes now wait for a random amount of time before doing their tasks at each loop turn
-* code has been generalised and tidied in the main() code
-* reading process now pushes and EOF character in case of error to force the other threads to stop cleanly
+* Replace all semaphores in the structures by condition variables
+* move all unnecessart library calls from *.h files to *.c files (speed up compilation)
 
 ### 4. To Do
-* implement screen messages shared library
-* move processes deallocation functions to the process library
+n/a
 
 ### 5. Known issues
 n/a
