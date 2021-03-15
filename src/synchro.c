@@ -314,21 +314,24 @@ void* fifo_pop(fifo_t* fifo){
 /*  O : 0 if ok                                                                         */
 /*     -1 if error                                                                      */
 /****************************************************************************************/
-/*  WARNING : THE MUTEX ENCASED IN LIGHT MUST ALREADY BE LOCKED !!!                     */
-/****************************************************************************************/
 int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
+    int lock_acquired = 0;
+
     //make sure parameters are not NULL
     if(!light || !cond || !flag)
         return -1;
     
     //increment the counter, and lock
     //  the condition if at least one thread reaches the switch
-    light->counter++;
-    if(light->counter == 1){
-        *flag = 0;
-        while(!flag)
-            pthread_cond_wait(cond, &light->mutex);
-    }
+    lock_acquired = pthread_mutex_trylock(&light->mutex);   //if mutex not already locked, lock it
+        light->counter++;
+        if(light->counter == 1){
+            *flag = 0;
+            while(!flag)
+                pthread_cond_wait(cond, &light->mutex);
+        }
+    if(lock_acquired)                                       //if mutex locked with trylock, unlock it
+        pthread_mutex_unlock(&light->mutex);
     
     return 0;
 }
@@ -341,20 +344,23 @@ int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
 /*  O : 0 if ok                                                                         */
 /*     -1 if error                                                                      */
 /****************************************************************************************/
-/*  WARNING : THE MUTEX ENCASED IN LIGHT MUST ALREADY BE LOCKED !!!                     */
-/****************************************************************************************/
 int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
+    int lock_acquired = 0;
+
     //make sure parameters are not NULL
     if(!light || !cond || !flag)
         return -1;
     
     //decrement the counter, and unlock
     //  the condition if all threads are done
-    light->counter--;
-    if(!light->counter){
-        *flag = 1;
-        pthread_cond_signal(cond);
-    }
+    lock_acquired = pthread_mutex_trylock(&light->mutex);   //if mutex not already locked, lock it
+        light->counter--;
+        if(!light->counter){
+            *flag = 1;
+            pthread_cond_signal(cond);
+        }
+    if(lock_acquired)                                       //if mutex locked with trylock, unlock it
+        pthread_mutex_unlock(&light->mutex);
     
     return 0;
 }
