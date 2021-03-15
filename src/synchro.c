@@ -3,7 +3,7 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 14/03/2021
+** Last modified : 15/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
@@ -307,47 +307,54 @@ void* fifo_pop(fifo_t* fifo){
 
 /****************************************************************************************/
 /*  I : lightswitch to lock                                                             */
-/*      semaphore used to block readers or writers                                      */
-/*  P : Lock the lightswitch, allowing either the readers or the writers to act         */
-/*          sequentially, before allowing the readers/writers to act on their side      */
+/*      condition variable used to lock threads                                         */
+/*      flag used in addition to the condition variable as a security                   */
+/*  P : Lock the lightswitch, allowing either the readers to block the writers while    */
+/*          they're working, or the opposite                                            */
 /*  O : 0 if ok                                                                         */
 /*     -1 if error                                                                      */
 /****************************************************************************************/
-int lightswitch_lock(lightswitch_t* light, sem_t* sem){
+/*  WARNING : THE MUTEX ENCASED IN LIGHT MUST ALREADY BE LOCKED !!!                     */
+/****************************************************************************************/
+int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
     //make sure parameters are not NULL
-    if(!light || !sem)
+    if(!light || !cond || !flag)
         return -1;
     
     //increment the counter, and lock
-    //  the semaphore if at least one thread reaches the switch
-    pthread_mutex_lock(&light->mutex);
-        light->counter++;
-        if(light->counter == 1)
-            sem_wait(sem);
-    pthread_mutex_unlock(&light->mutex);
+    //  the condition if at least one thread reaches the switch
+    light->counter++;
+    if(light->counter == 1){
+        *flag = 0;
+        while(!flag)
+            pthread_cond_wait(cond, &light->mutex);
+    }
     
     return 0;
 }
 
 /****************************************************************************************/
-/*  I : lightswitch to unlock                                                           */
-/*      semaphore used to block readers or writers                                      */
+/*  I : lightswitch containing the counter to decrement                                 */
+/*      condition variable used to unlock threads                                       */
+/*      flag used in addition to the condition variable as a security                   */
 /*  P : Unlock the lightswitch, to release the readers/writers which had been locked    */
 /*  O : 0 if ok                                                                         */
 /*     -1 if error                                                                      */
 /****************************************************************************************/
-int lightswitch_unlock(lightswitch_t* light, sem_t* sem){
+/*  WARNING : THE MUTEX ENCASED IN LIGHT MUST ALREADY BE LOCKED !!!                     */
+/****************************************************************************************/
+int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
     //make sure parameters are not NULL
-    if(!light || !sem)
+    if(!light || !cond || !flag)
         return -1;
     
     //decrement the counter, and unlock
-    //  the semaphore if all threads are done
-    pthread_mutex_lock(&light->mutex);
-        light->counter--;
-        if(light->counter == 0)
-            sem_post(sem);
-    pthread_mutex_unlock(&light->mutex);
+    //  the condition if all threads are done
+    light->counter--;
+    if(!light->counter){
+        *flag = 1;
+        pthread_cond_signal(cond);
+    }
     
     return 0;
 }
@@ -385,8 +392,8 @@ int rw_alloc(readwrite_t** rw){
         return -1;
     }
 
-    //initialise semaphore which excludes the readers
-    if(sem_init(&(*rw)->noReaders, 0, 1) < 0){
+    //initialise the FIFO full conditional variable
+    if(pthread_cond_init(&(*rw)->cond_noReaders, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (& (*rw)->writeSwitch.mutex);
         pthread_mutex_destroy (& (*rw)->readSwitch.mutex);
@@ -395,8 +402,8 @@ int rw_alloc(readwrite_t** rw){
         return -1;
     }
 
-    //initialise semaphore which excludes the writers
-    if(sem_init(&(*rw)->noWriters, 0, 1) < 0){
+    //initialise the FIFO full conditional variable
+    if(pthread_cond_init(&(*rw)->cond_noWriters, NULL) < 0){
         errtmp = errno;
         rw_free(*rw);
         errno = errtmp;
@@ -406,6 +413,8 @@ int rw_alloc(readwrite_t** rw){
     //initialise the lightswitches counters
     (*rw)->readSwitch.counter = 0;
     (*rw)->writeSwitch.counter = 0;
+    (*rw)->noReaders = 1;
+    (*rw)->noWriters = 1;
 
     return 0;
 }
@@ -418,8 +427,8 @@ int rw_alloc(readwrite_t** rw){
 /****************************************************************************************/
 int rw_free(readwrite_t* rw){
     if(rw){
-        sem_destroy (&rw->noWriters);
-        sem_destroy (&rw->noReaders);
+        pthread_cond_destroy(&rw->cond_noReaders);
+        pthread_cond_destroy(&rw->cond_noWriters);
         pthread_mutex_destroy (&rw->writeSwitch.mutex);
         pthread_mutex_destroy (&rw->readSwitch.mutex);
         free(rw);
@@ -430,7 +439,8 @@ int rw_free(readwrite_t* rw){
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*      action for the readers to perform                                               */
+/*      critical action for the readers to perform                                      */
+/*      argument used in the critical action                                            */
 /*  P : Lock the data for the current readers to perform an action (will be interrupt.  */
 /*          when a writer shows up (they have the priority))                            */
 /*  O : return code of the action for the readers to perform                            */
@@ -440,25 +450,29 @@ int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg){
     
     //make the first reader lock the switch to forbid any writer to perform
     //  an action
-    sem_wait(&rw->noReaders);
-        lightswitch_lock(&rw->readSwitch, &rw->noWriters);
-    sem_post(&rw->noReaders);
+    pthread_mutex_lock(&rw->readSwitch.mutex);                                      //reader takes the read mutex
+        while (!rw->noReaders)                                                      //reader waits for read cond to be true
+            pthread_cond_wait(&rw->cond_noReaders, &rw->readSwitch.mutex);
+        lightswitch_lock(&rw->readSwitch, &rw->cond_noWriters, &rw->noWriters);     //first reader locks writers
+        pthread_cond_signal(&rw->cond_noReaders);                                   //reader releases the next reader
 
-        //perform a reader's action
-        if(doAction)
-            ret = (*doAction)(action_arg);
-    
-    //make the last reader unlock the switch and allow writers to act
-    lightswitch_unlock(&rw->readSwitch, &rw->noWriters);
-    
+            //perform a reader's action
+            if(doAction)
+                ret = (*doAction)(action_arg);
+        
+        //make the last reader unlock the switch and allow writers to act
+        lightswitch_unlock(&rw->readSwitch, &rw->cond_noWriters, &rw->noWriters);   //last reader unlocks writers
+    pthread_mutex_unlock(&rw->readSwitch.mutex);                                    //reader releases readers mutex
+
     return ret;
 }
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*      action for the writers to perform                                               */
-/*  P : Lock the data for the current writers to perform an action (will interrupt.     */
-/*          the readers)                                                                */
+/*      critical action for the readers to perform                                      */
+/*      argument used in the critical action                                            */
+/*  P : Lock the data for the current writers to perform an action (will block          */
+/*          the readers because higher priority)                                        */
 /*  O : return code of the action for the writers to perform                            */
 /****************************************************************************************/
 int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg){
@@ -466,16 +480,20 @@ int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg){
 
     //make the first writer lock the switch to forbid any reader to perform
     //  an action
-    lightswitch_lock(&rw->writeSwitch, &rw->noReaders);
-        sem_wait(&rw->noWriters);
+    pthread_mutex_lock(&rw->writeSwitch.mutex);                                     //writer takes the write mutex
+        lightswitch_lock(&rw->writeSwitch, &rw->cond_noReaders, &rw->noReaders);    //first writer locks readers
+            while (!rw->noWriters){
+                pthread_cond_wait(&rw->cond_noWriters, &rw->writeSwitch.mutex);     //writer waits for write cond to be true
+            }
 
-            //perform a writers's action
-            if(doAction)
-                ret = (*doAction)(action_arg);
+                //perform a writers's action
+                if(doAction)
+                    ret = (*doAction)(action_arg);
 
-    //make the last writer unlock the switch and allow readers to act
-        sem_post(&rw->noWriters);
-    lightswitch_unlock(&rw->writeSwitch, &rw->noReaders);
+            //make the last writer unlock the switch and allow readers to act
+            pthread_cond_signal(&rw->cond_noWriters);                               //writer releases the next writer
+        lightswitch_unlock(&rw->writeSwitch, &rw->cond_noReaders, &rw->noReaders);  //last writer unlocks readers
+    pthread_mutex_unlock(&rw->writeSwitch.mutex);                                   //writer releases the write mutex
 
     return ret;
 }

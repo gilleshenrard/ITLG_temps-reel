@@ -33,8 +33,10 @@ typedef struct{
 typedef struct{
     lightswitch_t   readSwitch;     //lightswitch used to synchronise the readers (first locks, last unlocks)
     lightswitch_t   writeSwitch;    //lightswitch used to synchronise the writers (first locks, last unlocks)
-    sem_t           noReaders;      //semaphore used to exclude readers
-    sem_t           noWriters;      //semaphore used to exclude writers
+    pthread_cond_t  cond_noReaders; //condition variable used to exclude readers
+    pthread_cond_t  cond_noWriters; //condition variable used to exclude writers
+    uint8_t         noReaders;      //flag indicating if the noReaders condition has been met
+    uint8_t         noWriters;      //flag indicating if the noWriters condition has been met
 }readwrite_t;
 
 //barrier synchronisation functions
@@ -49,8 +51,8 @@ int fifo_push(fifo_t* fifo, void* elem);
 void* fifo_pop(fifo_t* fifo);
 
 //readers-writers synchronisation functions
-int lightswitch_lock(lightswitch_t* light, sem_t* sem);
-int lightswitch_unlock(lightswitch_t* light, sem_t* sem);
+int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
+int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
 int rw_alloc(readwrite_t** rw);
 int rw_free(readwrite_t* rw);
 int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
