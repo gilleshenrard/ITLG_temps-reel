@@ -23,9 +23,9 @@
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int readwrite_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+int rwprocess_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
     *reader = calloc(1, sizeof(thrw_t));
-    return readwrite_assign(*reader, rw, thnum, data, max);
+    return rwprocess_assign(*reader, rw, thnum, data, max);
 }
 
 /****************************************************************************************/
@@ -38,7 +38,7 @@ int readwrite_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int readwrite_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+int rwprocess_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
     //check if the readwrite structure has been allocated
     if(!reader){
         errno = ENOMEM;
@@ -60,7 +60,7 @@ int readwrite_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int readwrite_free(thrw_t* reader){
+int rwprocess_free(thrw_t* reader){
     free(reader);
     reader = NULL;
 
