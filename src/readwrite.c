@@ -115,8 +115,7 @@ void *writer_handler(void *writer){
 
     do{
         usleep(1 + (rand() % 400));
-        if(*wr->data < wr->max)
-            rw_write(wr->rw, updateData, wr);
+        rw_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
     pthread_exit(NULL);
@@ -129,11 +128,14 @@ void *writer_handler(void *writer){
 /****************************************************************************************/
 int updateData(void* writer){
     thrw_t* wr = (thrw_t*)writer;
-    int* data = (int*)wr->data;
 
-    *data = (*data) + 1;
+    //update the data if not max yet
+    if(*wr->data < wr->max){
+        *wr->data += 1;
 
-    fprintf(stdout, "Writer n°%d writes : %hd\n", wr->thNum, *data);
+        //display the results
+        fprintf(stdout, "Writer n°%d writes : %hd\n", wr->thNum, *wr->data);
+    }
 
     return 0;
 }
