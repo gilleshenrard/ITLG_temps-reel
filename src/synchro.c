@@ -12,65 +12,61 @@
 #include "synchro.h"
 
 /****************************************************************************************/
-/*  I : Barrier type to allocate                                                        */
-/*      Amount of threads to synchronise                                                */
+/*  I : Amount of threads to synchronise                                                */
 /*  P : Allocate a Barrier type in memory (no value initialisation)                     */
-/*  O : 0 if ok                                                                         */
-/*     -1 otherwise and errno is set                                                    */
+/*  O : If success, a new barrier is returned                                           */
+/*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-int barrier_alloc(barrier_t** bar, const uint16_t nb){
+barrier_t* barrier_alloc(const uint16_t nb){
+    barrier_t* bar = NULL;
     uint16_t errtmp = 0;
     
     //check if the number of threads to sync > 0
     if(!nb){
         errno = EINVAL;
-        return -1;
+        return NULL;
     }
-    
-    //allocate space for the structure
-    if(*bar)
-        free(*bar);
         
     //allocate space for the structure
-    *bar = calloc(1, sizeof(barrier_t));
-    if (!*bar){
+    bar = calloc(1, sizeof(barrier_t));
+    if (!bar){
         errno = ENOMEM;
-        return -1;
+        return NULL;
     }
     
     //initialise the internal mutex
-    if(pthread_mutex_init(& (*bar)->mutex, NULL) < 0){
+    if(pthread_mutex_init(&bar->mutex, NULL) < 0){
         errtmp = errno;
-        free(*bar);
+        free(bar);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the barrier turnstile 1 conditional variable
-    if(pthread_cond_init(&(*bar)->cond_turnstile1, NULL) < 0){
+    if(pthread_cond_init(&bar->cond_turnstile1, NULL) < 0){
         errtmp = errno;
-        pthread_mutex_destroy (&(*bar)->mutex);
-        free(*bar);
+        pthread_mutex_destroy (&bar->mutex);
+        free(bar);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the barrier turnstile 2 conditional variable
-    if(pthread_cond_init(&(*bar)->cond_turnstile2, NULL) < 0){
+    if(pthread_cond_init(&bar->cond_turnstile2, NULL) < 0){
         errtmp = errno;
-        pthread_cond_destroy(&(*bar)->cond_turnstile1);
-        pthread_mutex_destroy (&(*bar)->mutex);
-        free(*bar);
+        pthread_cond_destroy(&bar->cond_turnstile1);
+        pthread_mutex_destroy (&bar->mutex);
+        free(bar);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //set the amount of threads (overall) to synchronise
-    (*bar)->th_nb = nb;
-    (*bar)->th_count = 0;
-    (*bar)->flipflop = 1;   //turnstile 1 closed and 2 open by default
+    bar->th_nb = nb;
+    bar->th_count = 0;
+    bar->flipflop = 1;   //turnstile 1 closed and 2 open by default
 
-    return 0;
+    return bar;
 }
 
 /****************************************************************************************/
@@ -145,77 +141,73 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
 }
 
 /****************************************************************************************/
-/*  I : FIFO type to allocate                                                           */
-/*      Size of a slot in the FIFO                                                      */
+/*  I : Size of a slot in the FIFO                                                      */
 /*      Amount of slots the FIFO can hold                                               */
 /*  P : Allocate a FIFO type in memory (no value initialisation)                        */
-/*  O : 0 if ok                                                                         */
-/*     -1 otherwise and errno is set                                                    */
+/*  O : On success, a new FIFO queue is returned                                        */
+/*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount){
+fifo_t* fifo_alloc(const uint16_t elemsz, const uint16_t amount){
+    fifo_t* fifo = NULL;
     uint16_t errtmp = 0;
 
     //check if the size and amount are > 0
     if(!elemsz || !amount){
         errno = EINVAL;
-        return -1;
+        return NULL;
     }
-    
-    //allocate space for the structure
-    if(*fifo)
-        free(*fifo);
 
-    *fifo = calloc(1, sizeof(fifo_t));
-    if (!*fifo){
+    fifo = calloc(1, sizeof(fifo_t));
+    if (!fifo){
         errno = ENOMEM;
-        return -1;
+        return NULL;
     }
     
     //initialise the internal mutex
-    if(pthread_mutex_init(& (*fifo)->mutex, NULL) < 0){
+    if(pthread_mutex_init(&fifo->mutex, NULL) < 0){
         errtmp = errno;
-        free(*fifo);
+        free(fifo);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the FIFO full conditional variable
-    if(pthread_cond_init(&(*fifo)->cond_notfull, NULL) < 0){
+    if(pthread_cond_init(&fifo->cond_notfull, NULL) < 0){
         errtmp = errno;
-        pthread_mutex_destroy (&(*fifo)->mutex);
-        free(*fifo);
+        pthread_mutex_destroy (&fifo->mutex);
+        free(fifo);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the FIFO empty conditional variable
-    if(pthread_cond_init(&(*fifo)->cond_notempty, NULL) < 0){
+    if(pthread_cond_init(&fifo->cond_notempty, NULL) < 0){
         errtmp = errno;
-        pthread_cond_destroy(&(*fifo)->cond_notfull);
-        pthread_mutex_destroy (&(*fifo)->mutex);
-        free(*fifo);
+        pthread_cond_destroy(&fifo->cond_notfull);
+        pthread_mutex_destroy (&fifo->mutex);
+        free(fifo);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //allocate space for the FIFO buffer
-    (*fifo)->buffer = calloc(amount, elemsz);
-    if (!*fifo){
-        fifo_free(*fifo);
+    fifo->buffer = calloc(amount, elemsz);
+    if (!fifo){
+        fifo_free(fifo);
         errno = ENOMEM;
-        return -1;
+        return NULL;
     }
 
     //set the amount of slots available in the FIFO, as well as
     //  the input and ouput indexes
-    (*fifo)->amount = amount;
-    (*fifo)->item_sz = elemsz;
-    (*fifo)->indexIn = 0;
-    (*fifo)->indexOut = 0;
-    (*fifo)->items = 0;
-    (*fifo)->spaces = amount;
+    fifo->amount = amount;
+    fifo->item_sz = elemsz;
+    fifo->indexIn = 0;
+    fifo->indexOut = 0;
+    fifo->items = 0;
+    fifo->spaces = amount;
 
-    return 0;
+    return fifo;
 }
 
 /****************************************************************************************/
@@ -366,63 +358,64 @@ int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag
 }
 
 /****************************************************************************************/
-/*  I : readers/writers type to allocate                                                */
+/*  I : /                                                                               */
 /*  P : Allocate a readers/writers type in memory                                       */
-/*  O : 0 if ok                                                                         */
-/*     -1 otherwise and errno is set                                                    */
+/*  O : On success, a new reader/writer type is returned                                */
+/*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-int rw_alloc(readwrite_t** rw){
+readwrite_t* rw_alloc(){
+    readwrite_t* rw = NULL;
     int errtmp = 0;
 
     //allocate the memory for the rw structure
-    *rw = calloc(1, sizeof(readwrite_t));
-    if(!*rw){
+    rw = calloc(1, sizeof(readwrite_t));
+    if(!rw){
         errno = ENOMEM;
-        return -1;
+        return NULL;
     }
 
     //initialise the internal mutex for the readers
-    if(pthread_mutex_init(& (*rw)->readSwitch.mutex, NULL) < 0){
+    if(pthread_mutex_init(&rw->readSwitch.mutex, NULL) < 0){
         errtmp = errno;
-        free(*rw);
+        free(rw);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the internal mutex for the writers
-    if(pthread_mutex_init(& (*rw)->writeSwitch.mutex, NULL) < 0){
+    if(pthread_mutex_init(&rw->writeSwitch.mutex, NULL) < 0){
         errtmp = errno;
-        pthread_mutex_destroy (& (*rw)->readSwitch.mutex);
-        free(*rw);
+        pthread_mutex_destroy (&rw->readSwitch.mutex);
+        free(rw);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the FIFO full conditional variable
-    if(pthread_cond_init(&(*rw)->cond_noReaders, NULL) < 0){
+    if(pthread_cond_init(&rw->cond_noReaders, NULL) < 0){
         errtmp = errno;
-        pthread_mutex_destroy (& (*rw)->writeSwitch.mutex);
-        pthread_mutex_destroy (& (*rw)->readSwitch.mutex);
-        free(*rw);
+        pthread_mutex_destroy (&rw->writeSwitch.mutex);
+        pthread_mutex_destroy (&rw->readSwitch.mutex);
+        free(rw);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the FIFO full conditional variable
-    if(pthread_cond_init(&(*rw)->cond_noWriters, NULL) < 0){
+    if(pthread_cond_init(&rw->cond_noWriters, NULL) < 0){
         errtmp = errno;
-        rw_free(*rw);
+        rw_free(rw);
         errno = errtmp;
-        return -1;
+        return NULL;
     }
 
     //initialise the lightswitches counters
-    (*rw)->readSwitch.counter = 0;
-    (*rw)->writeSwitch.counter = 0;
-    (*rw)->noReaders = 1;
-    (*rw)->noWriters = 1;
+    rw->readSwitch.counter = 0;
+    rw->writeSwitch.counter = 0;
+    rw->noReaders = 1;
+    rw->noWriters = 1;
 
-    return 0;
+    return rw;
 }
 
 /****************************************************************************************/

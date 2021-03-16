@@ -78,7 +78,8 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 	barrier_t* bar_tmp = NULL;
 
 	//allocate the barrier
-	if(barrier_alloc(&bar_tmp, nbrun) <0 ){
+	bar_tmp = barrier_alloc(nbrun);
+	if(!bar_tmp){
 		print_error("init_runners : %s", strerror(errno));
 		free_runners(*array, *threads);
 		return -1;

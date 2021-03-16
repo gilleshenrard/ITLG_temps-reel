@@ -86,7 +86,8 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     readwrite_t* rw = NULL;
 
     //allocate a readwrite structure shared between all the threads
-    if(rw_alloc(&rw) < 0){
+    rw = rw_alloc();
+    if(!rw){
         print_error("init_rw : %s", strerror(errno));
         return -1;
     }

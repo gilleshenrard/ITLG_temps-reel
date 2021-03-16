@@ -40,12 +40,12 @@ typedef struct{
 }readwrite_t;
 
 //barrier synchronisation functions
-int barrier_alloc(barrier_t** bar, const uint16_t nb);
+barrier_t* barrier_alloc(const uint16_t nb);
 int barrier_free(barrier_t* bar);
 int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg);
 
 //FIFO synchronisation functions
-int fifo_alloc(fifo_t** fifo, const uint16_t elemsz, const uint16_t amount);
+fifo_t* fifo_alloc(const uint16_t elemsz, const uint16_t amount);
 int fifo_free(fifo_t* fifo);
 int fifo_push(fifo_t* fifo, void* elem);
 void* fifo_pop(fifo_t* fifo);
@@ -53,7 +53,7 @@ void* fifo_pop(fifo_t* fifo);
 //readers-writers synchronisation functions
 int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
 int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
-int rw_alloc(readwrite_t** rw);
+readwrite_t* rw_alloc();
 int rw_free(readwrite_t* rw);
 int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
 int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg);

@@ -50,6 +50,7 @@ Use :
 * in prodcons, the display process now prints characters one at a time on screen instead of
     paragraph by paragraph
 * readers : display the value only if < max
+* allocation functions now return pointers instead of using pointers of pointers
 
 ### 4. To Do
 n/a

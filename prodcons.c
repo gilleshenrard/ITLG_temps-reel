@@ -127,13 +127,15 @@ int init_processes(void* processes[], const uint16_t* fifosize, const char* file
 	fifo_t* dispfifo = NULL;
 
 	//allocate the FIFO queue holding the characters read
-	if(fifo_alloc(&readfifo, sizeof(char), *fifosize) <0 ){
+	readfifo = fifo_alloc(sizeof(char), *fifosize);
+	if(!readfifo){
 		print_error("init_processes : %s", strerror(errno));
 		return -1;
 	}
 
 	//allocate the FIFO queue holding the characters read
-	if(fifo_alloc(&dispfifo, sizeof(char), *fifosize) <0 ){
+	dispfifo = fifo_alloc(sizeof(char), *fifosize);
+	if(!dispfifo){
 		print_error("init_processes : %s", strerror(errno));
 		free_processes(processes);
 		return -1;
