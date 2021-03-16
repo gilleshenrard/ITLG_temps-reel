@@ -11,7 +11,6 @@
 ** Last modified : 16/03/2021
 */
 #include <stdlib.h>
-#include <stdio.h>
 #include <pthread.h>
 #include <string.h>
 #include <errno.h>
