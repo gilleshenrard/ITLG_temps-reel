@@ -330,7 +330,7 @@ int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
                 pthread_cond_wait(cond, &light->mutex);
         }
 
-    if(lock_acquired)                                       //if mutex locked with trylock, unlock it
+    if(!lock_acquired)                                      //if mutex locked with trylock, unlock it
         pthread_mutex_unlock(&light->mutex);
     
     return 0;
@@ -359,7 +359,7 @@ int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag
             pthread_cond_signal(cond);
         }
 
-    if(lock_acquired)                                       //if mutex locked with trylock, unlock it
+    if(!lock_acquired)                                      //if mutex locked with trylock, unlock it
         pthread_mutex_unlock(&light->mutex);
     
     return 0;
