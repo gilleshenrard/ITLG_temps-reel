@@ -31,7 +31,9 @@ void *readproc_handler(void *proc){
     char buf = '0';
     uint32_t waittime = 0;
 
-    fprintf(stdout, "Reading file %s\n", process->filename);
+    //indicate to the user that the reading process is starting
+    if(process->onPrint)
+        process->onPrint("Reading file %s", process->filename);
 
     //open the file to read
     pfile = fopen(process->filename, "r");

@@ -5,6 +5,7 @@
 typedef struct{
     char*    filename;  //name of the text file to read 
     fifo_t*  fifo;      //fifo to which push the characters
+    void     (*onPrint)(char*, ...); //function used to print info on screen
 }readproc_t;
 
 typedef struct{

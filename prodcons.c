@@ -160,6 +160,9 @@ int init_processes(void* processes[], const uint16_t* fifosize, const char* file
 		return -1;
 	}
 
+	//assign the printing function to the file reading process
+	((readproc_t*)processes[0])->onPrint = print_neutral;
+
 	return 0;
 }
 
