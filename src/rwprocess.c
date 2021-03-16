@@ -49,6 +49,7 @@ int rwprocess_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint
     reader->thNum = thnum;
     reader->data = data;
     reader->max = max;
+    reader->onPrint = NULL;
 
     return 0;
 }
