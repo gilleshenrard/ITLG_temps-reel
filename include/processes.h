@@ -13,7 +13,7 @@ typedef struct{
 }calcproc_t;
 
 typedef struct{
-    fifo_t*  dispfifo;  //fifo to which pushing the characters to display
+    fifo_t*  dispfifo;  //fifo from which popping the characters to display
 }dispproc_t;
 
 void *readproc_handler(void *proc);
