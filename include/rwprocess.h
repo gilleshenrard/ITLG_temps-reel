@@ -3,10 +3,10 @@
 #include "synchro.h"
 
 typedef struct{
-    uint16_t     thNum;
-    uint16_t*    data;
-    uint16_t     max;
-    readwrite_t* rw;
+    uint16_t     thNum;     //thread number
+    uint16_t*    data;      //data to be manipulated by either readers or writers
+    uint16_t     max;       //maximum value of the data
+    readwrite_t* rw;        //readers/writers synchronisation structure
 }thrw_t;
 
 int rwprocess_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max);
