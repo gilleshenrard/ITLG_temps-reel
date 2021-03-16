@@ -92,7 +92,7 @@ void *reader_handler(void *reader){
 int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
 
-    if(rd->onPrint)
+    if(*rd->data < rd->max && rd->onPrint)
         rd->onPrint("Reader n°%d reads : %hd", rd->thNum, *((int*)rd->data));
 
     return 0;
