@@ -7,7 +7,6 @@
 */
 #include "screen.h"
 #include <stdio.h>
-#include <time.h>
 #include <string.h>
 
 /************************************************************************/
@@ -19,17 +18,9 @@
 /************************************************************************/
 void format_output(char* final_msg, char* format, va_list* arg)
 {
-    time_t timer = {0};
     char buffer[SZLINE] = {0};
-    struct tm* tm_info = {0};
 
-    //get current time, and format it in the buffer
-    time(&timer);
-    tm_info = localtime(&timer);
-    strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", tm_info);
-    strcat(buffer, " -> ");
     strcat(buffer, format);
-
     vsprintf(final_msg, buffer, *arg);
 }
 
