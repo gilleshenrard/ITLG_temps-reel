@@ -91,6 +91,7 @@ int readproc_alloc(readproc_t** readproc, fifo_t* readfifo, const char* filename
 	}
 	strcpy((*readproc)->filename, filename);
 	(*readproc)->fifo = readfifo;
+    (*readproc)->onPrint = NULL;
 
     return 0;
 }
