@@ -169,8 +169,10 @@ void *dispproc_handler(void *proc){
         buf = fifo_pop(process->dispfifo);
         output = *buf;
         free(buf);
-        if (tolower(output) != EOF)
+        if (tolower(output) != EOF){
             fprintf(stdout, "%c", output);
+            fflush(stdout);
+        }
     }while(tolower(output) != EOF);
     fprintf(stdout, "\n");
 
