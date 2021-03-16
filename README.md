@@ -43,6 +43,8 @@ Use :
 ### 3. Changes
 * Replace all semaphores in the structures by condition variables
 * move all unnecessart library calls from *.h files to *.c files (speed up compilation)
+* readers/writers lighswitches now use pthread_mutex_trylock to make sure the mutex is locked
+* writers : max value verification has been moved to the critical section (more accurate)
 
 ### 4. To Do
 n/a

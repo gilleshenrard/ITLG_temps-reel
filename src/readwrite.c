@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 14/03/2021
+** Last modified : 16/03/2021
 */
 #include "readwrite.h"
 #include <unistd.h>
@@ -130,12 +130,8 @@ int updateData(void* writer){
     thrw_t* wr = (thrw_t*)writer;
 
     //update the data if not max yet
-    if(*wr->data < wr->max){
-        *wr->data += 1;
-
-        //display the results
-        fprintf(stdout, "Writer n°%d writes : %hd\n", wr->thNum, *wr->data);
-    }
+    if(*wr->data < wr->max)
+        fprintf(stdout, "Writer n°%d writes : %hd\n", wr->thNum, ++*wr->data);
 
     return 0;
 }
