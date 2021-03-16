@@ -42,10 +42,11 @@ Use :
 
 ### 3. Changes
 * Replace all semaphores in the structures by condition variables
-* move all unnecessart library calls from *.h files to *.c files (speed up compilation)
+* move all unnecessary library calls from *.h files to *.c files (speed up compilation)
 * readers/writers lighswitches now use pthread_mutex_trylock to make sure the mutex is locked
 * writers : max value verification has been moved to the critical section (more accurate)
 * renamed readwrite files and functions to rwprocess to ease up code reading
+* programs now all use a common libscreen.so dynamic library to print info on the screen
 
 ### 4. To Do
 n/a
