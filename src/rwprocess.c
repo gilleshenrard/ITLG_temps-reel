@@ -6,7 +6,7 @@
 ** Made by Gilles Henrard
 ** Last modified : 16/03/2021
 */
-#include "readwrite.h"
+#include "rwprocess.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

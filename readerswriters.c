@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <errno.h>
-#include "readwrite.h"
+#include "rwprocess.h"
 
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters);

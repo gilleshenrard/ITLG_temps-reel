@@ -34,7 +34,7 @@ librunner.so : ../src/runner.o
 	@ ldconfig -n . -l $@.1.0
 	@ ln -sf $@.1 $@
 
-libreadwrite.so : ../src/readwrite.o
+librwproc.so : ../src/rwprocess.o
 	@ echo "Building $@"
 	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $< -pthread
 	@ ldconfig -n . -l $@.1.0
@@ -48,10 +48,10 @@ lib_run: libsynchro.so librunner.so
 lib_proc: libsynchro.so libproc.so
 
 .PHONY= lib_rw
-lib_rw: libsynchro.so libreadwrite.so
+lib_rw: libsynchro.so librwproc.so
 
 .PHONY= all
-all: libsynchro.so libproc.so librunner.so libreadwrite.so
+all: libsynchro.so libproc.so librunner.so librwproc.so
 
 .PHONY= clean
 clean:

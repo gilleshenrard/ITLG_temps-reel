@@ -23,7 +23,7 @@ runners: brun
 readerswriters: brw
 		@ echo "Building $@"
 		@ mkdir -p bin
-		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lreadwrite $(LFLAGS)
+		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lrwproc $(LFLAGS)
 
 #overall functions
 .PHONY: all
