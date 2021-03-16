@@ -24,14 +24,7 @@
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
 int readwrite_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
-    //allocate the memory for the reader structure
     *reader = calloc(1, sizeof(thrw_t));
-    if(!*reader){
-        errno = ENOMEM;
-        return -1;
-    }
-
-    //populate its fields
     return readwrite_assign(*reader, rw, thnum, data, max);
 }
 
@@ -106,7 +99,7 @@ int displayData(void* reader){
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*  P : Wait for up to 400us, then increment the data value (and display the result),   */
+/*  P : Wait for 200 to 400us, then increment the data value (and display the result),  */
 /*          then stop when the data reached the max value                               */
 /*  O : /                                                                               */
 /****************************************************************************************/
@@ -114,7 +107,7 @@ void *writer_handler(void *writer){
     thrw_t* wr = (thrw_t*)writer;
 
     do{
-        usleep(1 + (rand() % 400));
+        usleep(201 + (rand() % 200));
         rw_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
