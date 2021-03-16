@@ -47,6 +47,8 @@ Use :
 * writers : max value verification has been moved to the critical section (more accurate)
 * renamed readwrite files and functions to rwprocess to ease up code reading
 * programs now all use a common libscreen.so dynamic library to print info on the screen
+* in prodcons, the display process now prints characters one at a time on screen instead of
+    paragraph by paragraph
 
 ### 4. To Do
 n/a
