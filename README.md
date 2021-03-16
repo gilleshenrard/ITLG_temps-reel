@@ -49,6 +49,7 @@ Use :
 * programs now all use a common libscreen.so dynamic library to print info on the screen
 * in prodcons, the display process now prints characters one at a time on screen instead of
     paragraph by paragraph
+* readers : display the value only if < max
 
 ### 4. To Do
 n/a
