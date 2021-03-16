@@ -6,7 +6,7 @@
 ** - exit their handler
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 12/03/2021
+** Last modified : 16/03/2021
 */
 #include <pthread.h>
 #include <errno.h>
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "runner.h"
+#include "screen.h"
 
 int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, const uint16_t nbturns);
 int free_runners(runner_t* array, pthread_t* threads);
@@ -30,7 +31,7 @@ int main(int argc, char* argv[])
 
 	//check if the amount of runners and laps to run have been provided as program arguments
 	if(argc != 3){
-		fprintf(stderr, "usage : bin/runners nb_runners nb_laps\n");
+		print_error("usage : bin/runners nb_runners nb_laps");
 		exit(EXIT_FAILURE);
 	}
 	else
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
     for (i = 0; i < nbrun; i++){
 		ret = pthread_create(&threads[i], NULL, runner_handler, (void*)(&runners_array[i]));
 		if (ret){
-			fprintf(stderr, "main : %s", strerror(ret));
+			print_error("main : %s", strerror(ret));
 			free_runners(runners_array, threads);
 			exit(EXIT_FAILURE);
 		}
@@ -79,7 +80,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 
 	//allocate the barrier
 	if(barrier_alloc(&bar_tmp, nbrun) <0 ){
-		fprintf(stderr, "init_runners : %s\n", strerror(errno));
+		print_error("init_runners : %s", strerror(errno));
 		free_runners(*array, *threads);
 		return -1;
 	}
@@ -87,7 +88,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 	//allocate the array of runners
 	*array = (runner_t*)calloc(nbrun, sizeof(runner_t));
 	if(!*array){
-		fprintf(stderr, "init_runners : error while allocating the runners\n");
+		print_error("init_runners : error while allocating the runners");
 		free_runners(*array, *threads);
 		return -1;
 	}
@@ -95,7 +96,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 	//allocate the threads
 	*threads = (pthread_t*)calloc(nbrun, sizeof(pthread_t));
 	if(!*threads){
-		fprintf(stderr, "init_runners : error while allocating the threads\n");
+		print_error("init_runners : error while allocating the threads");
 		free_runners(*array, *threads);
 		return -1;
 	}
@@ -105,6 +106,7 @@ int init_runners(runner_t** array, pthread_t** threads, const uint16_t nbrun, co
 		(*array)[i].threadNum = i + 1;
 		(*array)[i].barrier = bar_tmp;
 		(*array)[i].nbTurns = nbturns;
+		(*array)[i].onPrint = print_neutral;
 	}
 
 	return 0;

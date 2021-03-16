@@ -3,9 +3,10 @@
 #include "synchro.h"
 
 typedef struct{
-    uint16_t    threadNum;
-    uint16_t    nbTurns;
-    barrier_t*  barrier;
+    uint16_t    threadNum;              //ID of the thread
+    uint16_t    nbTurns;                //amount of laps to run
+    barrier_t*  barrier;                //barrier used to sync all the runners
+    void        (*onPrint)(char*, ...); //function used to print info on screen
 }runner_t;
 
 void *runner_handler(void *num);

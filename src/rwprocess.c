@@ -92,7 +92,8 @@ void *reader_handler(void *reader){
 int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
 
-    fprintf(stdout, "Reader n°%d reads : %hd\n", rd->thNum, *((int*)rd->data));
+    if(rd->onPrint)
+        rd->onPrint("Reader n°%d reads : %hd", rd->thNum, *((int*)rd->data));
 
     return 0;
 }
@@ -123,8 +124,8 @@ int updateData(void* writer){
     thrw_t* wr = (thrw_t*)writer;
 
     //update the data if not max yet
-    if(*wr->data < wr->max)
-        fprintf(stdout, "Writer n°%d writes : %hd\n", wr->thNum, ++*wr->data);
+    if(*wr->data < wr->max && wr->onPrint)
+        wr->onPrint("Writer n°%d writes : %hd", wr->thNum, ++*wr->data);
 
     return 0;
 }

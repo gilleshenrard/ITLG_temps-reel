@@ -29,7 +29,8 @@ void *runner_handler(void *run)
 
 	for(uint16_t i = 0 ; i < runner->nbTurns ; i++){
 		//sleep for a random amount of usec
-		printf("Thread N%02hd starts the step %hd\n", runner->threadNum, i + 1);
+		if(runner->onPrint)
+			(*runner->onPrint)("Thread N%02hd starts the step %hd", runner->threadNum, i + 1);
 		waittime = 2000 + (rand() % 3000);
 		usleep(waittime);
 		
@@ -48,6 +49,8 @@ void *runner_handler(void *run)
 int print_barrier(void* run){
 	runner_t* runner = (runner_t*)run;
 
-	printf("Thread N%02hd reaches barrier\n", runner->threadNum);
+	if(runner->onPrint)
+		(*runner->onPrint)("Thread N%02hd reaches barrier", runner->threadNum);
+
 	return 0;
 }

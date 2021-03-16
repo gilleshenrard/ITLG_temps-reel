@@ -40,18 +40,24 @@ librwproc.so : ../src/rwprocess.o
 	@ ldconfig -n . -l $@.1.0
 	@ ln -sf $@.1 $@
 
+libscreen.so : ../src/screen.o
+	@ echo "Building $@"
+	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $<
+	@ ldconfig -n . -l $@.1.0
+	@ ln -sf $@.1 $@
+
 #phony rules to build needed libraries and to clean builds
 .PHONY= lib_run
-lib_run: libsynchro.so librunner.so
+lib_run: libsynchro.so librunner.so libscreen.so
 
 .PHONY= lib_proc
-lib_proc: libsynchro.so libproc.so
+lib_proc: libsynchro.so libproc.so libscreen.so
 
 .PHONY= lib_rw
-lib_rw: libsynchro.so librwproc.so
+lib_rw: libsynchro.so librwproc.so libscreen.so
 
 .PHONY= all
-all: libsynchro.so libproc.so librunner.so librwproc.so
+all: libsynchro.so libproc.so librunner.so librwproc.so libscreen.so
 
 .PHONY= clean
 clean:

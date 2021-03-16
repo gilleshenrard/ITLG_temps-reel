@@ -6,7 +6,7 @@ cbin := bin
 #flags necessary to the compilation
 CC := gcc
 CFLAGS:= -fPIC -Wall -Werror -Wextra -g -I$(chead)
-LFLAGS:= -lsynchro -pthread
+LFLAGS:= -lscreen -lsynchro -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
 
 #executables compilation

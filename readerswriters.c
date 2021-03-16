@@ -8,7 +8,7 @@
 **      The writers will have the priority over the readers (no starve readers/writers synchronisation method)
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 14/03/2021
+** Last modified : 16/03/2021
 */
 #include <stdlib.h>
 #include <stdio.h>
@@ -16,6 +16,7 @@
 #include <string.h>
 #include <errno.h>
 #include "rwprocess.h"
+#include "screen.h"
 
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters);
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]){
 
     //check if the fifo size and file name have been provided in the program arguments
 	if(argc != 4){
-		fprintf(stderr, "usage : bin/readerswriters nbthreads nbwriters maximum\n");
+        print_error("usage : bin/readerswriters nbthreads nbwriters maximum");
 		exit(EXIT_FAILURE);
 	}
 	else
@@ -40,13 +41,13 @@ int main(int argc, char *argv[]){
 
         //check if the minimum amount of writers is correct
         if(nbwriters < 1 || nbthreads < 2){
-            fprintf(stderr, "There must be at least 1 writers and 2 threads\n");
+        print_error("usage : There must be at least 1 writers and 2 threads");
             exit(EXIT_FAILURE);
         }
 
         //check if the amount of writers is correct
         if(nbwriters >= nbthreads){
-            fprintf(stderr, "The amount of writers must be inferior to the amount of threads\n");
+        print_error("usage : The amount of writers must be inferior to the amount of threads");
             exit(EXIT_FAILURE);
         }
 	}
@@ -56,7 +57,7 @@ int main(int argc, char *argv[]){
 
     //initialise the readers/writers structures
     if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum) < 0){
-        fprintf(stderr, "main: error while initialising readers/writers\n");
+        print_error("main: error while initialising readers/writers");
         exit(EXIT_FAILURE);
     }
 
@@ -87,7 +88,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //allocate a readwrite structure shared between all the threads
     if(rw_alloc(&rw) < 0){
-        fprintf(stderr, "init_rw : %s\n", strerror(errno));
+        print_error("init_rw : %s", strerror(errno));
         return -1;
     }
 
@@ -95,7 +96,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     *array = calloc(nbthreads, sizeof(thrw_t));
     if(!*array){
         rw_free(rw);
-        fprintf(stderr, "init_rw : %s\n", strerror(ENOMEM));
+        print_error("init_rw : %s", strerror(ENOMEM));
         return -1;
     }
 
@@ -104,13 +105,15 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     if(!*threads){
         rw_free(rw);
         free(*array);
-        fprintf(stderr, "init_rw : %s\n", strerror(ENOMEM));
+        print_error("init_rw : %s", strerror(ENOMEM));
         return -1;
     }
 
     //allocate the readers/writers array
-    for(uint16_t i = 0 ; i < nbthreads ; i++)
+    for(uint16_t i = 0 ; i < nbthreads ; i++){
         rwprocess_assign(&(*array)[i], rw, i, data, maximum);
+        (*array)[i].onPrint = print_neutral;
+    }
 
     return 0;
 }
@@ -132,7 +135,7 @@ int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthr
     while(i < nbthreads){
         ret = pthread_create(&th_array[i], NULL, (i < nbwriters ? writer_handler : reader_handler), (void*)&rw_array[i]);
 		if (ret){
-			fprintf(stderr, "threads_launch : %s", strerror(ret));
+            print_error("threads_launch : %s", strerror(ret));
 			free_rw(rw_array, th_array);
 			exit(EXIT_FAILURE);
 		}
@@ -157,7 +160,7 @@ int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthread
 	{
 		pthread_join(threads[i], (void**)&thret);
 		if(thret){
-			fprintf(stderr, "%s\n", thret);
+            print_error("threads_join : %s", thret);
 			free_rw(rw_array, threads);
 			free(thret);
 			exit(EXIT_FAILURE);
