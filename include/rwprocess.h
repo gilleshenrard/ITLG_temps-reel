@@ -10,7 +10,7 @@ typedef struct{
     void        (*onPrint)(char*, ...); //function used to print info on screen
 }thrw_t;
 
-int rwprocess_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max);
+thrw_t* rwprocess_alloc(readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max);
 int rwprocess_assign(thrw_t* reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max);
 int rwprocess_free(thrw_t* reader);
 void *reader_handler(void *reader);

@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 16/03/2021
+** Last modified : 17/03/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -13,22 +13,30 @@
 #include <pthread.h>
 
 /****************************************************************************************/
-/*  I : readers/writer type to allocate                                                 */
-/*      readers/writers type used to synchronise readers                                */
+/*  I : readers/writers type used to synchronise readers                                */
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
 /*      Max value the data can take                                                     */
 /*  P : Allocate memory for a reader and fill its fields                                */
-/*  O : 0 if ok                                                                         */
-/*     -1 if error, and errno is set                                                    */
+/*  O : On success, a new reader/writer structure is returned                           */
+/*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-int rwprocess_alloc(thrw_t** reader, readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
-    *reader = calloc(1, sizeof(thrw_t));
-    return rwprocess_assign(*reader, rw, thnum, data, max);
+thrw_t* rwprocess_alloc(readwrite_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+    thrw_t* reader = NULL;
+
+    //attempt to allocate memory for the new reader/writer
+    //  (allocation will be checked in assignment function)
+    reader = calloc(1, sizeof(thrw_t));
+
+    //fill its fields with the values received
+    if(rwprocess_assign(reader, rw, thnum, data, max) < 0)
+        return NULL;
+    else
+        return reader;
 }
 
 /****************************************************************************************/
-/*  I : readers/writer type to allocate                                                 */
+/*  I : readers/writer type to fill                                                     */
 /*      readers/writers type used to synchronise readers                                */
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
