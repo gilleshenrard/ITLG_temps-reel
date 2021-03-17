@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 12/03/2021
+** Last modified : 17/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
@@ -70,30 +70,32 @@ void *readproc_handler(void *proc){
 /*  I : process structure to allocate                                                   */
 /*      FIFO used to push characters read                                               */
 /*      name of the file to read                                                        */
-/*  P : Allocate the process structure and all of its components                        */  
-/*  O : 0 if OK                                                                         */
-/*     -1 if error, and ERRNO is set                                                    */
+/*  P : Allocate the process structure and all of its components                        */
+/*  O : On success, a new file reading process is returned                              */
+/*      On error, NULL is returned and ERRNO is set                                     */
 /****************************************************************************************/
-int readproc_alloc(readproc_t** readproc, fifo_t* readfifo, const char* filename){
+readproc_t* readproc_alloc(fifo_t* readfifo, const char* filename){
+    readproc_t* readproc = NULL;
+
     //allocate the file reading process structure
-	*readproc = (readproc_t*)calloc(1, sizeof(readproc_t));
-	if(!*readproc){
+	readproc = (readproc_t*)calloc(1, sizeof(readproc_t));
+	if(!readproc){
         errno = ENOMEM;
-		return -1;
+		return NULL;
 	}
 
 	//assign the file name and reading FIFO to the file reading process
-	(*readproc)->filename = calloc(1, strlen(filename) + 1);
-	if(!(*readproc)->filename){
-        free(*readproc);
+	readproc->filename = calloc(1, strlen(filename) + 1);
+	if(!readproc->filename){
+        free(readproc);
         errno = ENOMEM;
-		return -1;
+		return NULL;
 	}
-	strcpy((*readproc)->filename, filename);
-	(*readproc)->fifo = readfifo;
-    (*readproc)->onPrint = NULL;
+	strcpy(readproc->filename, filename);
+	readproc->fifo = readfifo;
+    readproc->onPrint = NULL;
 
-    return 0;
+    return readproc;
 }
 
 /****************************************************************************************/
@@ -129,24 +131,25 @@ void *calcproc_handler(void *proc){
 /*  I : process structure to allocate                                                   */
 /*      FIFO used to pop characters read                                                */
 /*      FIFO used to push characters set to upper case                                  */
-/*  P : Allocate the process structure and all of its components                        */   
-/*  O : 0 if OK                                                                         */
-/*     -1 if error, and ERRNO is set                                                    */
+/*  P : Allocate the process structure and all of its components                        */
+/*  O : On success, a new character calculation process is returned                     */
+/*      On error, NULL is returned and ERRNO is set                                     */
 /****************************************************************************************/
-int calcproc_alloc(calcproc_t** calcproc, fifo_t* readfifo, fifo_t* dispfifo){
+calcproc_t* calcproc_alloc(fifo_t* readfifo, fifo_t* dispfifo){
+    calcproc_t* calcproc = NULL;
 
     //allocate the calculation process structure
-	*calcproc = (calcproc_t*)calloc(1, sizeof(calcproc_t));
-	if(!*calcproc){
+	calcproc = (calcproc_t*)calloc(1, sizeof(calcproc_t));
+	if(!calcproc){
         errno = ENOMEM;
-		return -1;
+		return NULL;
 	}
 
 	//assign both FIFO queues to be used in the calculation process
-	(*calcproc)->readfifo = readfifo;
-	(*calcproc)->dispfifo = dispfifo;
+	calcproc->readfifo = readfifo;
+	calcproc->dispfifo = dispfifo;
 
-    return 0;
+    return calcproc;
 }
 
 /****************************************************************************************/
@@ -185,20 +188,22 @@ void *dispproc_handler(void *proc){
 /****************************************************************************************/
 /*  I : process structure to allocate                                                   */
 /*      FIFO used to pop characters set to upper case and display                       */
-/*  P : Allocate the process structure and all of its components                        */   
-/*  O : 0 if OK                                                                         */
-/*     -1 if error, and ERRNO is set                                                    */
+/*  P : Allocate the process structure and all of its components                        */
+/*  O : On success, a new character displaying process is returned                      */
+/*      On error, NULL is returned and ERRNO is set                                     */
 /****************************************************************************************/
-int dispproc_alloc(dispproc_t** dispproc, fifo_t* dispfifo){
+dispproc_t* dispproc_alloc(fifo_t* dispfifo){
+    dispproc_t* dispproc = NULL;
+
     //allocate the calculation process structure
-	*dispproc = (dispproc_t*)calloc(1, sizeof(dispproc_t));
-	if(!*dispproc){
+	dispproc = (dispproc_t*)calloc(1, sizeof(dispproc_t));
+	if(!dispproc){
         errno = ENOMEM;
-		return -1;
+		return NULL;
 	}
 
 	//assign the display FIFO to the display process
-	(*dispproc)->dispfifo = dispfifo;
+	dispproc->dispfifo = dispfifo;
 
-    return 0;
+    return dispproc;
 }
