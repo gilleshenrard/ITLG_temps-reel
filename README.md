@@ -50,17 +50,17 @@ Compilation and Use :
 
 ### 3. Changes
 * Common
-** Replace all semaphores in the structures by condition variables
-** move as much library calls as possible from *.h files to *.c files (speed up compilation)
-** programs now all use a common libscreen.so dynamic library to print info on the screen
-** allocation functions now return pointers instead of using pointers of pointers
+    * Replace all semaphores in the structures by condition variables
+    * move as much library calls as possible from *.h files to *.c files (speed up compilation)
+    * programs now all use a common libscreen.so dynamic library to print info on the screen
+    * allocation functions now return pointers instead of using pointers of pointers
 * readerswriters
-** lighswitches now use pthread_mutex_trylock to make sure the mutex is locked
-** writers : max value verification has been moved to the critical section (more accurate)
-** renamed readwrite files and functions to rwprocess to ease up code reading
-** readers : display the value only if < max
+    * lighswitches now use pthread_mutex_trylock to make sure the mutex is locked
+    * writers : max value verification has been moved to the critical section (more accurate)
+    * renamed readwrite files and functions to rwprocess to ease up code reading
+    * readers : display the value only if < max
 * prodcons
-** display process now prints characters one at a time on screen instead of
+    * display process now prints characters one at a time on screen instead of
     paragraph by paragraph
 
 ### 4. To Do
