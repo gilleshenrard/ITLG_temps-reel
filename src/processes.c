@@ -67,8 +67,7 @@ void *readproc_handler(void *proc){
 }
 
 /****************************************************************************************/
-/*  I : process structure to allocate                                                   */
-/*      FIFO used to push characters read                                               */
+/*  I : FIFO used to push characters read                                               */
 /*      name of the file to read                                                        */
 /*  P : Allocate the process structure and all of its components                        */
 /*  O : On success, a new file reading process is returned                              */
@@ -128,8 +127,7 @@ void *calcproc_handler(void *proc){
 }
 
 /****************************************************************************************/
-/*  I : process structure to allocate                                                   */
-/*      FIFO used to pop characters read                                                */
+/*  I : FIFO used to pop characters read                                                */
 /*      FIFO used to push characters set to upper case                                  */
 /*  P : Allocate the process structure and all of its components                        */
 /*  O : On success, a new character calculation process is returned                     */
@@ -186,8 +184,7 @@ void *dispproc_handler(void *proc){
 }
 
 /****************************************************************************************/
-/*  I : process structure to allocate                                                   */
-/*      FIFO used to pop characters set to upper case and display                       */
+/*  I : FIFO used to pop characters set to upper case and display                       */
 /*  P : Allocate the process structure and all of its components                        */
 /*  O : On success, a new character displaying process is returned                      */
 /*      On error, NULL is returned and ERRNO is set                                     */
