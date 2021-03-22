@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 17/03/2021
+** Last modified : 22/03/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -85,7 +85,7 @@ void *reader_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
 
     do{
-        usleep(1 + (rand() % 200));
+        usleep(1 + (rand() % 300000));
         rw_read(rd->rw, displayData, rd);
     }while (*rd->data < rd->max);
 
@@ -101,7 +101,7 @@ int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
 
     if(*rd->data < rd->max && rd->onPrint)
-        rd->onPrint("Reader n°%d reads : %hd", rd->thNum, *((int*)rd->data));
+        rd->onPrint("Reader n°%02d reads : %hd", rd->thNum, *((int*)rd->data));
 
     return 0;
 }
@@ -116,7 +116,7 @@ void *writer_handler(void *writer){
     thrw_t* wr = (thrw_t*)writer;
 
     do{
-        usleep(201 + (rand() % 200));
+        usleep(300001 + (rand() % 200000));
         rw_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
@@ -133,7 +133,7 @@ int updateData(void* writer){
 
     //update the data if not max yet
     if(*wr->data < wr->max && wr->onPrint)
-        wr->onPrint("Writer n°%d writes : %hd", wr->thNum, ++*wr->data);
+        wr->onPrint("Writer n°%02d writes : %hd", wr->thNum, ++*wr->data);
 
     return 0;
 }
