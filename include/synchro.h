@@ -37,7 +37,7 @@ typedef struct{
     pthread_cond_t  cond_noWriters; //condition variable used to exclude writers
     uint8_t         noReaders;      //flag indicating if the noReaders condition has been met
     uint8_t         noWriters;      //flag indicating if the noWriters condition has been met
-}readwrite_t;
+}readwrite_pr_t;
 
 //barrier synchronisation functions
 barrier_t* barrier_alloc(const uint16_t nb);
@@ -53,8 +53,8 @@ void* fifo_pop(fifo_t* fifo);
 //readers-writers synchronisation functions
 int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
 int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
-readwrite_t* rw_alloc();
-int rw_free(readwrite_t* rw);
-int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
-int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg);
+readwrite_pr_t* rwprior_alloc();
+int rwprior_free(readwrite_pr_t* rw);
+int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg);
+int rwprior_write(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg);
 #endif

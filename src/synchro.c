@@ -3,7 +3,7 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 15/03/2021
+** Last modified : 22/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
@@ -363,12 +363,12 @@ int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag
 /*  O : On success, a new reader/writer type is returned                                */
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-readwrite_t* rw_alloc(){
-    readwrite_t* rw = NULL;
+readwrite_pr_t* rwprior_alloc(){
+    readwrite_pr_t* rw = NULL;
     int errtmp = 0;
 
     //allocate the memory for the rw structure
-    rw = calloc(1, sizeof(readwrite_t));
+    rw = calloc(1, sizeof(readwrite_pr_t));
     if(!rw){
         errno = ENOMEM;
         return NULL;
@@ -404,7 +404,7 @@ readwrite_t* rw_alloc(){
     //initialise the FIFO full conditional variable
     if(pthread_cond_init(&rw->cond_noWriters, NULL) < 0){
         errtmp = errno;
-        rw_free(rw);
+        rwprior_free(rw);
         errno = errtmp;
         return NULL;
     }
@@ -424,7 +424,7 @@ readwrite_t* rw_alloc(){
 /*  O : 0 if ok                                                                         */
 /*     -1 otherwise                                                                     */
 /****************************************************************************************/
-int rw_free(readwrite_t* rw){
+int rwprior_free(readwrite_pr_t* rw){
     if(rw){
         pthread_cond_destroy(&rw->cond_noReaders);
         pthread_cond_destroy(&rw->cond_noWriters);
@@ -444,7 +444,7 @@ int rw_free(readwrite_t* rw){
 /*          when a writer shows up (they have the priority))                            */
 /*  O : return code of the action for the readers to perform                            */
 /****************************************************************************************/
-int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg){
+int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
     int ret = 0;
     
     //make the first reader lock the switch to forbid any writer to perform
@@ -474,7 +474,7 @@ int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg){
 /*          the readers because higher priority)                                        */
 /*  O : return code of the action for the writers to perform                            */
 /****************************************************************************************/
-int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg){
+int rwprior_write(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
     int ret = 0;
 
     //make the first writer lock the switch to forbid any reader to perform
