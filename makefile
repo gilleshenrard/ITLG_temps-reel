@@ -10,16 +10,6 @@ LFLAGS:= -lscreen -lsynchro -pthread
 LDFLAGS:= -Wl,--disable-new-dtags -Wl,-rpath,\$$ORIGIN/../lib -L$(clib)
 
 #executables compilation
-prodcons: bproc 
-		@ echo "Building $@"
-		@ mkdir -p bin
-		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lproc $(LFLAGS)
-
-runners: brun
-		@ echo "Building $@"
-		@ mkdir -p bin
-		@ $(CC) $(LDFLAGS) -o $(cbin)/$@ $@.c $(CFLAGS) -lrunner $(LFLAGS)
-
 readerswriters: brw
 		@ echo "Building $@"
 		@ mkdir -p bin
@@ -27,15 +17,7 @@ readerswriters: brw
 
 #overall functions
 .PHONY: all
-all: ball prodcons runners readerswriters
-
-.PHONY: brun
-brun:
-	@ $(MAKE) -f build.mk -C$(clib) lib_run
-
-.PHONY: bproc
-bproc:
-	@ $(MAKE) -f build.mk -C$(clib) lib_proc
+all: ball readerswriters
 
 .PHONY: brw
 brw:

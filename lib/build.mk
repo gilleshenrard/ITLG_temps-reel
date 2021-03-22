@@ -22,18 +22,6 @@ libsynchro.so : ../src/synchro.o
 	@ ldconfig -n . -l $@.1.0
 	@ ln -sf $@.1 $@
 
-libproc.so : ../src/processes.o
-	@ echo "Building $@"
-	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $< -pthread
-	@ ldconfig -n . -l $@.1.0
-	@ ln -sf $@.1 $@
-
-librunner.so : ../src/runner.o
-	@ echo "Building $@"
-	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $< -pthread
-	@ ldconfig -n . -l $@.1.0
-	@ ln -sf $@.1 $@
-
 librwproc.so : ../src/rwprocess.o
 	@ echo "Building $@"
 	@ $(CC) -shared -fPIC -lc -Wl,-soname,$@.1 -o $@.1.0 $< -pthread
@@ -47,17 +35,11 @@ libscreen.so : ../src/screen.o
 	@ ln -sf $@.1 $@
 
 #phony rules to build needed libraries and to clean builds
-.PHONY= lib_run
-lib_run: libsynchro.so librunner.so libscreen.so
-
-.PHONY= lib_proc
-lib_proc: libsynchro.so libproc.so libscreen.so
-
 .PHONY= lib_rw
 lib_rw: libsynchro.so librwproc.so libscreen.so
 
 .PHONY= all
-all: libsynchro.so libproc.so librunner.so librwproc.so libscreen.so
+all: libsynchro.so librwproc.so libscreen.so
 
 .PHONY= clean
 clean:
