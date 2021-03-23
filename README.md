@@ -50,9 +50,10 @@ Compilation and Use :
 ### 3. Changes
 * The readers and writers now wait between 300 ms and 1s
 * The no-starve algorithms have been implemented
+* Priorities have been set with nice() at the beginning of threads (1 for writers, 2 for readers)
 
 ### 4. To Do
-* implement the thread priority assignment as a program argument 
+n/a
 
 ### 5. Known issues
-* Even withtout any priority given, the writers still seem to have priority over the readers
+n/a

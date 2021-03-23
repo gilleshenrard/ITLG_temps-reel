@@ -17,11 +17,12 @@
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
 /*      Max value the data can take                                                     */
+/*      Priority value (lower means higher priority)                                    */
 /*  P : Allocate memory for a reader and fill its fields                                */
 /*  O : On success, a new reader/writer structure is returned                           */
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
     thrw_t* reader = NULL;
 
     //attempt to allocate memory for the new reader/writer
@@ -29,7 +30,7 @@ thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data
     reader = calloc(1, sizeof(thrw_t));
 
     //fill its fields with the values received
-    if(rwprocess_assign(reader, rw, thnum, data, max) < 0)
+    if(rwprocess_assign(reader, rw, thnum, data, max, nice_value) < 0)
         return NULL;
     else
         return reader;
@@ -41,11 +42,12 @@ thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
 /*      Max value the data can take                                                     */
+/*      Priority value (lower means higher priority)                                    */
 /*  P : Fill the readwrite structure fields                                             */
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
     //check if the readwrite structure has been allocated
     if(!reader){
         errno = ENOMEM;
@@ -58,6 +60,7 @@ int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, u
     reader->data = data;
     reader->max = max;
     reader->onPrint = NULL;
+    reader->nice_value = nice_value;
 
     return 0;
 }
@@ -83,6 +86,8 @@ int rwprocess_free(thrw_t* reader){
 /****************************************************************************************/
 void *reader_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
+
+    nice(rd->nice_value);
 
     do{
         usleep(300000 + (rand() % 700000));
@@ -114,6 +119,8 @@ int displayData(void* reader){
 /****************************************************************************************/
 void *writer_handler(void *writer){
     thrw_t* wr = (thrw_t*)writer;
+
+    nice(wr->nice_value);
 
     do{
         usleep(300000 + (rand() % 700000));

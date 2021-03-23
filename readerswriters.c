@@ -16,7 +16,7 @@
 #include "rwprocess.h"
 #include "screen.h"
 
-int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum);
+int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum, const uint16_t nbwriters);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters);
 int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
 	srand(time(NULL));
 
     //initialise the readers/writers structures
-    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum) < 0){
+    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum, nbwriters) < 0){
         print_error("main: error while initialising readers/writers");
         exit(EXIT_FAILURE);
     }
@@ -77,11 +77,12 @@ int main(int argc, char *argv[]){
 /*		Amount of readers/writers to create												*/
 /*      Data shared by the readers/writers                                              */
 /*      Maximum value to reach by the readers/writers                                   */
+/*      Amount of writers amongst the threads                                           */
 /*  P : Create the array of readers/writers with the proper values + the array of thr.  */  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum){
+int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum, const uint16_t nbwriters){
     readwrite_ns_t* rw = NULL;
 
     //allocate a readwrite structure shared between all the threads
@@ -110,7 +111,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //allocate the readers/writers array
     for(uint16_t i = 0 ; i < nbthreads ; i++){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum);
+        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? 1 : 2));
         (*array)[i].onPrint = print_neutral;
     }
 
