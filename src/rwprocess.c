@@ -77,7 +77,7 @@ int rwprocess_free(thrw_t* reader){
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*  P : Wait for up to 200us, then display the thread number and the data value,        */
+/*  P : Wait between 300 and 500ms, then display the thread number and the data value,   */
 /*          then stop when the data reached the max value                               */
 /*  O : /                                                                               */
 /****************************************************************************************/
@@ -85,7 +85,7 @@ void *reader_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
 
     do{
-        usleep(1 + (rand() % 300000));
+        usleep(300001 + (rand() % 200000));
         rwnostarve_read(rd->rw, displayData, rd);
     }while (*rd->data < rd->max);
 
@@ -108,15 +108,15 @@ int displayData(void* reader){
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*  P : Wait for 200 to 400us, then increment the data value (and display the result),  */
-/*          then stop when the data reached the max value                               */
+/*  P : Wait between 500 and 700us, then increment the data value (and display the      */
+/*          result), then stop when the data reached the max value                      */
 /*  O : /                                                                               */
 /****************************************************************************************/
 void *writer_handler(void *writer){
     thrw_t* wr = (thrw_t*)writer;
 
     do{
-        usleep(300001 + (rand() % 200000));
+        usleep(500001 + (rand() % 200000));
         rwnostarve_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
