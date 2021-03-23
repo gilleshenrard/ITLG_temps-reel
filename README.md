@@ -48,8 +48,7 @@ Compilation and Use :
 ```
 
 ### 3. Changes
-* The readers now wait between 300 and 500 ms
-* The writers now wait between 500 and 700 ms
+* The readers and writers now wait between 300 ms and 1s
 * The no-starve algorithms have been implemented
 
 ### 4. To Do
