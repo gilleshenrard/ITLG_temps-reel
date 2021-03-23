@@ -1,24 +1,17 @@
 # Temps Reel
-## Exercise 4 - Condition Variables
+## Exercise 5 - Kindness
 ---
 ### 1. Intro
-The aim of this assignment is to re-implement the previous exercises, by replacing semaphores by condition variables.
-The previous assignments are the following :
-* [Runners (Barrier problem)](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment1)
-* [Producers-Consumers](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment2)
-* [Readers-Writers](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment3) 
+The aim of this assignment is to re-implement the readers/writers assignment with condition variables, but using the no-starve no-priority algorithm,
+in order to test the threads kindness (courtoisie in French).
+The writers will therefore have no priority over the readers at first, and the priorities will be given as a program argument.
+It is based on the code of the readers/writers' code in the  [assignment 4](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment4) 
 
-The code for the current assignment can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment4)
+The code for the current assignment can be found on [the GitHub repository](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment5)
 
 Compilation and Use :
 ```shell
-    make runners
-    bin/runners nb_runners nb_laps
-
-    make prodcons
-    bin/prodcons sz_fifo filename
-
-    make readerswriters
+    make
     bin/readerswriters nbthreads nbwriters maximum
 
     make all
@@ -39,32 +32,28 @@ Compilation and Use :
     int fifo_push(fifo_t* fifo, void* elem);
     void* fifo_pop(fifo_t* fifo);
 
-    //readers-writers synchronisation functions
+//readers-writers synchronisation functions (writers have priority)
     int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
     int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
     readwrite_t* rw_alloc();
     int rw_free(readwrite_t* rw);
     int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
     int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg);
+
+    //readers-writers synchronisation functions (writers don't starve)
+    readwrite_ns_t* rwnostarve_alloc();
+    int rwnostarve_free(readwrite_ns_t* rw);
+    int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
+    int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
 ```
 
 ### 3. Changes
-* Common
-    * Replace all semaphores in the structures by condition variables
-    * move as much library calls as possible from *.h files to *.c files (speed up compilation)
-    * programs now all use a common libscreen.so dynamic library to print info on the screen
-    * allocation functions now return pointers instead of using pointers of pointers
-* readerswriters
-    * lighswitches now use pthread_mutex_trylock to make sure the mutex is locked
-    * writers : max value verification has been moved to the critical section (more accurate)
-    * renamed readwrite files and functions to rwprocess to ease up code reading
-    * readers : display the value only if < max
-* prodcons
-    * display process now prints characters one at a time on screen instead of
-    paragraph by paragraph
+* The readers now wait between 300 and 500 ms
+* The writers now wait between 500 and 700 ms
+* The no-starve algorithms have been implemented
 
 ### 4. To Do
-n/a
+* implement the thread priority assignment as a program argument 
 
 ### 5. Known issues
-n/a
+* Even withtout any priority given, the writers still seem to have priority over the readers
