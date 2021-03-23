@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 22/03/2021
+** Last modified : 23/03/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -21,7 +21,7 @@
 /*  O : On success, a new reader/writer structure is returned                           */
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-thrw_t* rwprocess_alloc(readwrite_pr_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
     thrw_t* reader = NULL;
 
     //attempt to allocate memory for the new reader/writer
@@ -45,7 +45,7 @@ thrw_t* rwprocess_alloc(readwrite_pr_t* rw, const uint16_t thnum, uint16_t* data
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int rwprocess_assign(thrw_t* reader, readwrite_pr_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
+int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max){
     //check if the readwrite structure has been allocated
     if(!reader){
         errno = ENOMEM;
@@ -86,7 +86,7 @@ void *reader_handler(void *reader){
 
     do{
         usleep(1 + (rand() % 300000));
-        rwprior_read(rd->rw, displayData, rd);
+        rwnostarve_read(rd->rw, displayData, rd);
     }while (*rd->data < rd->max);
 
     pthread_exit(NULL);
@@ -117,7 +117,7 @@ void *writer_handler(void *writer){
 
     do{
         usleep(300001 + (rand() % 200000));
-        rwprior_write(wr->rw, updateData, wr);
+        rwnostarve_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
     pthread_exit(NULL);

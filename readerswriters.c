@@ -5,10 +5,9 @@
 **      - Readers will simply read the data and display it on the screen until max value is reached
 **
 **      All threads will wait for a random amount of us before doing their task
-**      The writers will have the priority over the readers (no starve readers/writers synchronisation method)
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 22/03/2021
+** Last modified : 23/03/2021
 */
 #include <stdlib.h>
 #include <pthread.h>
@@ -83,10 +82,10 @@ int main(int argc, char *argv[]){
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum){
-    readwrite_pr_t* rw = NULL;
+    readwrite_ns_t* rw = NULL;
 
     //allocate a readwrite structure shared between all the threads
-    rw = rwprior_alloc();
+    rw = rwnostarve_alloc();
     if(!rw){
         print_error("init_rw : %s", strerror(errno));
         return -1;
@@ -95,7 +94,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     //allocate memory for the whole readers/writers array
     *array = calloc(nbthreads, sizeof(thrw_t));
     if(!*array){
-        rwprior_free(rw);
+        rwnostarve_free(rw);
         print_error("init_rw : %s", strerror(ENOMEM));
         return -1;
     }
@@ -103,7 +102,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     //allocate the pthread array
     *threads = calloc(nbthreads, sizeof(pthread_t));
     if(!*threads){
-        rwprior_free(rw);
+        rwnostarve_free(rw);
         free(*array);
         print_error("init_rw : %s", strerror(ENOMEM));
         return -1;
@@ -179,7 +178,7 @@ int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthread
 /****************************************************************************************/
 int free_rw(thrw_t* array, pthread_t* threads){
     //deallocate the readwrite structure common to all readers/writers
-    rwprior_free(array[0].rw);
+    rwnostarve_free(array[0].rw);
     
     //deallocate the readers/writers array (all have just been assigned individually)
     free(array);

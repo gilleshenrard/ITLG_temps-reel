@@ -3,13 +3,21 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 22/03/2021
+** Last modified : 23/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include "synchro.h"
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  BARRIER PROBLEM FUNCTIONS                                                                                           //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 /****************************************************************************************/
 /*  I : Amount of threads to synchronise                                                */
@@ -139,6 +147,14 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
     
     return ret;
 }
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  FIFO PROBLEM FUNCTIONS                                                                                              //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 /****************************************************************************************/
 /*  I : Size of a slot in the FIFO                                                      */
@@ -297,6 +313,14 @@ void* fifo_pop(fifo_t* fifo){
     return ret;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  READERS/WRITERS PROBLEM FUNCTIONS                                                                                   //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 /****************************************************************************************/
 /*  I : lightswitch to lock                                                             */
 /*      condition variable used to lock threads                                         */
@@ -357,6 +381,14 @@ int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag
     return 0;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  READERS/WRITERS PROBLEM FUNCTIONS (WRITERS PRIORITY)                                                                //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 /****************************************************************************************/
 /*  I : /                                                                               */
 /*  P : Allocate a readers/writers type in memory                                       */
@@ -374,7 +406,7 @@ readwrite_pr_t* rwprior_alloc(){
         return NULL;
     }
 
-    //initialise the internal mutex for the readers
+    //initialise the internal mutex which blocks the writers
     if(pthread_mutex_init(&rw->readSwitch.mutex, NULL) < 0){
         errtmp = errno;
         free(rw);
@@ -382,7 +414,7 @@ readwrite_pr_t* rwprior_alloc(){
         return NULL;
     }
 
-    //initialise the internal mutex for the writers
+    //initialise the internal mutex which blocks the readers
     if(pthread_mutex_init(&rw->writeSwitch.mutex, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->readSwitch.mutex);
@@ -391,7 +423,7 @@ readwrite_pr_t* rwprior_alloc(){
         return NULL;
     }
 
-    //initialise the FIFO full conditional variable
+    //initialise the readers blocked conditional variable
     if(pthread_cond_init(&rw->cond_noReaders, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->writeSwitch.mutex);
@@ -401,7 +433,7 @@ readwrite_pr_t* rwprior_alloc(){
         return NULL;
     }
 
-    //initialise the FIFO full conditional variable
+    //initialise the writers blocked conditional variable
     if(pthread_cond_init(&rw->cond_noWriters, NULL) < 0){
         errtmp = errno;
         rwprior_free(rw);
@@ -409,7 +441,7 @@ readwrite_pr_t* rwprior_alloc(){
         return NULL;
     }
 
-    //initialise the lightswitches counters
+    //initialise the lightswitches counters and conditional values
     rw->readSwitch.counter = 0;
     rw->writeSwitch.counter = 0;
     rw->noReaders = 1;
@@ -431,6 +463,7 @@ int rwprior_free(readwrite_pr_t* rw){
         pthread_mutex_destroy (&rw->writeSwitch.mutex);
         pthread_mutex_destroy (&rw->readSwitch.mutex);
         free(rw);
+        rw = NULL;
     }
 
     return 0;
@@ -493,6 +526,139 @@ int rwprior_write(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
             pthread_cond_signal(&rw->cond_noWriters);                               //writer releases the next writer
         lightswitch_unlock(&rw->writeSwitch, &rw->cond_noReaders, &rw->noReaders);  //last writer unlocks readers
     pthread_mutex_unlock(&rw->writeSwitch.mutex);                                   //writer releases the write mutex
+
+    return ret;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  READERS/WRITERS PROBLEM FUNCTIONS (NO-STARVE WRITERS)                                                               //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/****************************************************************************************/
+/*  I : /                                                                               */
+/*  P : Allocate a readers/writers type in memory                                       */
+/*  O : On success, a new reader/writer type is returned                                */
+/*      On error, NULL is returned and errno is set                                     */
+/****************************************************************************************/
+readwrite_ns_t* rwnostarve_alloc(){
+    readwrite_ns_t* rw = NULL;
+    int errtmp = 0;
+
+    //allocate the memory for the rw structure
+    rw = calloc(1, sizeof(readwrite_ns_t));
+    if(!rw){
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    //initialise the internal mutex which blocks the writers
+    if(pthread_mutex_init(&rw->readSwitch.mutex, NULL) < 0){
+        errtmp = errno;
+        free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //initialise the turnstile conditional variable
+    if(pthread_cond_init(&rw->cond_turnstile, NULL) < 0){
+        errtmp = errno;
+        pthread_mutex_destroy (&rw->readSwitch.mutex);
+        free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //initialise the readers room empty conditional variable
+    if(pthread_cond_init(&rw->cond_roomEmtpy, NULL) < 0){
+        errtmp = errno;
+        rwnostarve_free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //initialise the lightswitch counter and the condition variables
+    rw->readSwitch.counter = 0;
+    rw->turnstile = 1;
+    rw->roomEmpty = 1;
+
+    return rw;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type to deallocate                                              */
+/*  P : Free the memory used by a readers/writers type                                  */
+/*  O : 0 if ok                                                                         */
+/*     -1 otherwise                                                                     */
+/****************************************************************************************/
+int rwnostarve_free(readwrite_ns_t* rw){
+    if(rw){
+        pthread_cond_destroy(&rw->cond_turnstile);
+        pthread_cond_destroy(&rw->cond_roomEmtpy);
+        pthread_mutex_destroy (&rw->readSwitch.mutex);
+        free(rw);
+        rw = NULL;
+    }
+
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type used in the synchro                                        */
+/*      critical action for the readers to perform                                      */
+/*      argument used in the critical action                                            */
+/*  P : Lock the data for the current readers to perform an action (will lock the       */
+/*          writers outside)                                                            */
+/*  O : return code of the action for the readers to perform                            */
+/****************************************************************************************/
+int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg){
+    int ret = 0;
+
+    pthread_mutex_lock(&rw->readSwitch.mutex);                                      //current reader locks the mutex
+        while(!rw->turnstile)                                                       //current reader waits for its turn at the turnstile
+            pthread_cond_wait(&rw->cond_turnstile, &rw->readSwitch.mutex);          //  and temporarily releases the mutex for next thread
+        rw->turnstile = 0;
+        pthread_cond_signal(&rw->cond_turnstile);                                   //current reader releases the turnstile for the next thread
+        rw->turnstile = 1;
+
+        lightswitch_lock(&rw->readSwitch, &rw->cond_roomEmtpy, &rw->roomEmpty);     //first reader locks all the writers
+            if(doAction)                                                            //current reader performs the critical section
+                ret = (*doAction)(action_arg);
+        lightswitch_unlock(&rw->readSwitch, &rw->cond_roomEmtpy, &rw->roomEmpty);   //last reader unlocks the writers
+    pthread_mutex_unlock(&rw->readSwitch.mutex);                                    //current reader unlocks the mutex
+
+    return ret;
+}
+
+/****************************************************************************************/
+/*  I : readers/writers type used in the synchro                                        */
+/*      critical action for the readers to perform                                      */
+/*      argument used in the critical action                                            */
+/*  P : Lock the data for the current writers to perform an action, but wait for all    */
+/*          the readers currently reading to be done                                    */
+/*  O : return code of the action for the writers to perform                            */
+/****************************************************************************************/
+int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg){
+    int ret = 0;
+
+    pthread_mutex_lock(&rw->readSwitch.mutex);                                  //current writer locks the mutex
+        while(!rw->turnstile)                                                   //current writer waits for its turn at the turnstile
+            pthread_cond_wait(&rw->cond_turnstile, &rw->readSwitch.mutex);      //  and temporarily releases the mutex for next thread
+        rw->turnstile = 0;                                                      //current writer updates the turnstile variable to block other threads
+
+            while(!rw->roomEmpty)                                               //current writer waits for all the current readers to be done
+                pthread_cond_wait(&rw->cond_roomEmtpy, &rw->readSwitch.mutex);  //  and temporarily releases the mutex
+
+            if(doAction)                                                        //current writer performs the critical action
+                ret = (*doAction)(action_arg);
+
+        rw->turnstile = 1;                                                      //current writer updates the turnstile variable to release other threads
+        pthread_cond_signal(&rw->cond_turnstile);                               //current writer releases the next thread
+        pthread_cond_signal(&rw->cond_roomEmtpy);                               //current writer releases the next writer
+    pthread_mutex_unlock(&rw->readSwitch.mutex);                                //current writer unlocks the mutex
 
     return ret;
 }
