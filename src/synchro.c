@@ -323,60 +323,46 @@ void* fifo_pop(fifo_t* fifo){
 
 /****************************************************************************************/
 /*  I : lightswitch to lock                                                             */
-/*      condition variable used to lock threads                                         */
-/*      flag used in addition to the condition variable as a security                   */
+/*      mutex variable used to lock threads                                             */
 /*  P : Lock the lightswitch, allowing either the readers to block the writers while    */
 /*          they're working, or the opposite                                            */
 /*  O : 0 if ok                                                                         */
 /*     -1 if error                                                                      */
 /****************************************************************************************/
-int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
-    int lock_acquired = 0;
-
-    //make sure parameters are not NULL
-    if(!light || !cond || !flag)
+int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex){
+    if(!light || !mutex)                        //make sure parameters are not NULL
         return -1;
 
-    lock_acquired = pthread_mutex_trylock(&light->mutex);   //if mutex not already locked, lock it
-        light->counter++;                                   //increment the counter
+    pthread_mutex_lock(&light->mutex);          //current thread locks the switch mutex
+        light->counter++;                       //current thread increments the counter
 
-        if(light->counter == 1){                            //lock the condition when the first thread
-            *flag = 0;                                      //  reaches the switch
-            while(!flag)
-                pthread_cond_wait(cond, &light->mutex);
-        }
+        if(light->counter == 1)                 //first thread locks the external mutex
+            pthread_mutex_lock(mutex);
 
-    if(!lock_acquired)                                      //if mutex locked with trylock, unlock it
-        pthread_mutex_unlock(&light->mutex);
+    pthread_mutex_unlock(&light->mutex);        //current thread releases the switch mutex
     
     return 0;
 }
 
 /****************************************************************************************/
 /*  I : lightswitch containing the counter to decrement                                 */
-/*      condition variable used to unlock threads                                       */
-/*      flag used in addition to the condition variable as a security                   */
+/*      mutex used to unlock threads                                                    */
 /*  P : Unlock the lightswitch, to release the readers/writers which had been locked    */
 /*  O : 0 if ok                                                                         */
 /*     -1 if error                                                                      */
 /****************************************************************************************/
-int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag){
-    int lock_acquired = 0;
-
+int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex){
     //make sure parameters are not NULL
-    if(!light || !cond || !flag)
+    if(!light || !mutex)
         return -1;
 
-    lock_acquired = pthread_mutex_trylock(&light->mutex);   //if mutex not already locked, lock it
-        light->counter--;                                   //decrement the counter
+    pthread_mutex_lock(&light->mutex);          //current thread locks the switch mutex
+        light->counter--;                       //current thread decrements the counter
 
-        if(!light->counter){                                //unlock the condition when the last thread
-            *flag = 1;                                      //  reaches the switch
-            pthread_cond_signal(cond);
-        }
+        if(!light->counter)                     //last thread unlocks the external mutex
+            pthread_mutex_unlock(mutex);
 
-    if(!lock_acquired)                                      //if mutex locked with trylock, unlock it
-        pthread_mutex_unlock(&light->mutex);
+    pthread_mutex_unlock(&light->mutex);        //current thread releases the switch mutex
     
     return 0;
 }
@@ -424,7 +410,7 @@ readwrite_pr_t* rwprior_alloc(){
     }
 
     //initialise the readers blocked conditional variable
-    if(pthread_cond_init(&rw->cond_noReaders, NULL) < 0){
+    if(pthread_mutex_init(&rw->noReaders, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->writeSwitch.mutex);
         pthread_mutex_destroy (&rw->readSwitch.mutex);
@@ -434,7 +420,7 @@ readwrite_pr_t* rwprior_alloc(){
     }
 
     //initialise the writers blocked conditional variable
-    if(pthread_cond_init(&rw->cond_noWriters, NULL) < 0){
+    if(pthread_mutex_init(&rw->noWriters, NULL) < 0){
         errtmp = errno;
         rwprior_free(rw);
         errno = errtmp;
@@ -444,8 +430,6 @@ readwrite_pr_t* rwprior_alloc(){
     //initialise the lightswitches counters and conditional values
     rw->readSwitch.counter = 0;
     rw->writeSwitch.counter = 0;
-    rw->noReaders = 1;
-    rw->noWriters = 1;
 
     return rw;
 }
@@ -458,10 +442,10 @@ readwrite_pr_t* rwprior_alloc(){
 /****************************************************************************************/
 int rwprior_free(readwrite_pr_t* rw){
     if(rw){
-        pthread_cond_destroy(&rw->cond_noReaders);
-        pthread_cond_destroy(&rw->cond_noWriters);
-        pthread_mutex_destroy (&rw->writeSwitch.mutex);
-        pthread_mutex_destroy (&rw->readSwitch.mutex);
+        pthread_mutex_destroy(&rw->noReaders);
+        pthread_mutex_destroy(&rw->noWriters);
+        pthread_mutex_destroy(&rw->writeSwitch.mutex);
+        pthread_mutex_destroy(&rw->readSwitch.mutex);
         free(rw);
         rw = NULL;
     }
@@ -479,22 +463,16 @@ int rwprior_free(readwrite_pr_t* rw){
 /****************************************************************************************/
 int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
     int ret = 0;
-    
-    //make the first reader lock the switch to forbid any writer to perform
-    //  an action
-    pthread_mutex_lock(&rw->readSwitch.mutex);                                      //reader takes the read mutex
-        while (!rw->noReaders)                                                      //reader waits for read cond to be true
-            pthread_cond_wait(&rw->cond_noReaders, &rw->readSwitch.mutex);
-        lightswitch_lock(&rw->readSwitch, &rw->cond_noWriters, &rw->noWriters);     //first reader locks writers
-        pthread_cond_signal(&rw->cond_noReaders);                                   //reader releases the next reader
 
-            //perform a reader's action
-            if(doAction)
-                ret = (*doAction)(action_arg);
-        
-        //make the last reader unlock the switch and allow writers to act
-        lightswitch_unlock(&rw->readSwitch, &rw->cond_noWriters, &rw->noWriters);   //last reader unlocks writers
-    pthread_mutex_unlock(&rw->readSwitch.mutex);                                    //reader releases readers mutex
+    pthread_mutex_lock(&rw->noReaders);                         //current reader waits for the readers mutex to be available
+        lightswitch_lock(&rw->readSwitch, &rw->noWriters);      //first reader locks writers
+    pthread_mutex_unlock(&rw->noReaders);                       //current reader releases the next reader
+
+        //perform a reader's action
+        if(doAction)
+            ret = (*doAction)(action_arg);
+
+    lightswitch_unlock(&rw->readSwitch, &rw->noWriters);        //last reader unlocks writers
 
     return ret;
 }
@@ -510,22 +488,15 @@ int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
 int rwprior_write(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
     int ret = 0;
 
-    //make the first writer lock the switch to forbid any reader to perform
-    //  an action
-    pthread_mutex_lock(&rw->writeSwitch.mutex);                                     //writer takes the write mutex
-        lightswitch_lock(&rw->writeSwitch, &rw->cond_noReaders, &rw->noReaders);    //first writer locks readers
-            while (!rw->noWriters){
-                pthread_cond_wait(&rw->cond_noWriters, &rw->writeSwitch.mutex);     //writer waits for write cond to be true
-            }
+    lightswitch_lock(&rw->writeSwitch, &rw->noReaders);     //first writer locks readers
+        pthread_mutex_lock(&rw->noWriters);                 //current writer waits for writers mutex to be available
 
-                //perform a writers's action
-                if(doAction)
-                    ret = (*doAction)(action_arg);
+        //perform a writers's action
+        if(doAction)
+            ret = (*doAction)(action_arg);
 
-            //make the last writer unlock the switch and allow readers to act
-            pthread_cond_signal(&rw->cond_noWriters);                               //writer releases the next writer
-        lightswitch_unlock(&rw->writeSwitch, &rw->cond_noReaders, &rw->noReaders);  //last writer unlocks readers
-    pthread_mutex_unlock(&rw->writeSwitch.mutex);                                   //writer releases the write mutex
+        pthread_mutex_unlock(&rw->noWriters);               //current writer releases the next writer
+    lightswitch_unlock(&rw->writeSwitch, &rw->noReaders);   //last writer unlocks readers
 
     return ret;
 }
@@ -563,8 +534,8 @@ readwrite_ns_t* rwnostarve_alloc(){
         return NULL;
     }
 
-    //initialise the turnstile conditional variable
-    if(pthread_cond_init(&rw->cond_turnstile, NULL) < 0){
+    //initialise the turnstile mutex
+    if(pthread_mutex_init(&rw->turnstile, NULL) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->readSwitch.mutex);
         free(rw);
@@ -572,18 +543,16 @@ readwrite_ns_t* rwnostarve_alloc(){
         return NULL;
     }
 
-    //initialise the readers room empty conditional variable
-    if(pthread_cond_init(&rw->cond_roomEmtpy, NULL) < 0){
+    //initialise the readers room empty mutex
+    if(pthread_mutex_init(&rw->roomEmpty, NULL) < 0){
         errtmp = errno;
         rwnostarve_free(rw);
         errno = errtmp;
         return NULL;
     }
 
-    //initialise the lightswitch counter and the condition variables
+    //initialise the lightswitch counter
     rw->readSwitch.counter = 0;
-    rw->turnstile = 1;
-    rw->roomEmpty = 1;
 
     return rw;
 }
@@ -596,8 +565,8 @@ readwrite_ns_t* rwnostarve_alloc(){
 /****************************************************************************************/
 int rwnostarve_free(readwrite_ns_t* rw){
     if(rw){
-        pthread_cond_destroy(&rw->cond_turnstile);
-        pthread_cond_destroy(&rw->cond_roomEmtpy);
+        pthread_mutex_destroy(&rw->turnstile);
+        pthread_mutex_destroy(&rw->roomEmpty);
         pthread_mutex_destroy (&rw->readSwitch.mutex);
         free(rw);
         rw = NULL;
@@ -617,18 +586,13 @@ int rwnostarve_free(readwrite_ns_t* rw){
 int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg){
     int ret = 0;
 
-    pthread_mutex_lock(&rw->readSwitch.mutex);                                      //current reader locks the mutex
-        while(!rw->turnstile)                                                       //current reader waits for its turn at the turnstile
-            pthread_cond_wait(&rw->cond_turnstile, &rw->readSwitch.mutex);          //  and temporarily releases the mutex for next thread
-        rw->turnstile = 0;
-        pthread_cond_signal(&rw->cond_turnstile);                                   //current reader releases the turnstile for the next thread
-        rw->turnstile = 1;
+    pthread_mutex_lock(&rw->turnstile);                     //current reader waits for the turnstile to be available
+    pthread_mutex_unlock(&rw->turnstile);                   //current reader releases the turnstile for the next thread
 
-        lightswitch_lock(&rw->readSwitch, &rw->cond_roomEmtpy, &rw->roomEmpty);     //first reader locks all the writers
-            if(doAction)                                                            //current reader performs the critical section
-                ret = (*doAction)(action_arg);
-        lightswitch_unlock(&rw->readSwitch, &rw->cond_roomEmtpy, &rw->roomEmpty);   //last reader unlocks the writers
-    pthread_mutex_unlock(&rw->readSwitch.mutex);                                    //current reader unlocks the mutex
+    lightswitch_lock(&rw->readSwitch, &rw->roomEmpty);      //first reader locks all the writers
+        if(doAction)                                        //current reader performs the critical section
+            ret = (*doAction)(action_arg);
+    lightswitch_unlock(&rw->readSwitch, &rw->roomEmpty);    //last reader unlocks the writers
 
     return ret;
 }
@@ -644,21 +608,14 @@ int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg)
 int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg){
     int ret = 0;
 
-    pthread_mutex_lock(&rw->readSwitch.mutex);                                  //current writer locks the mutex
-        while(!rw->turnstile)                                                   //current writer waits for its turn at the turnstile
-            pthread_cond_wait(&rw->cond_turnstile, &rw->readSwitch.mutex);      //  and temporarily releases the mutex for next thread
-        rw->turnstile = 0;                                                      //current writer updates the turnstile variable to block other threads
+    pthread_mutex_lock(&rw->turnstile);                     //current writer waits for the turnstile to be available
+    pthread_mutex_lock(&rw->roomEmpty);                     //current writer waits for all the current readers to be done
 
-            while(!rw->roomEmpty)                                               //current writer waits for all the current readers to be done
-                pthread_cond_wait(&rw->cond_roomEmtpy, &rw->readSwitch.mutex);  //  and temporarily releases the mutex
+    if(doAction)                                            //current writer performs the critical action
+        ret = (*doAction)(action_arg);
 
-            if(doAction)                                                        //current writer performs the critical action
-                ret = (*doAction)(action_arg);
-
-        rw->turnstile = 1;                                                      //current writer updates the turnstile variable to release other threads
-        pthread_cond_signal(&rw->cond_turnstile);                               //current writer releases the next thread
-        pthread_cond_signal(&rw->cond_roomEmtpy);                               //current writer releases the next writer
-    pthread_mutex_unlock(&rw->readSwitch.mutex);                                //current writer unlocks the mutex
+    pthread_mutex_unlock(&rw->turnstile);                   //current writer releases the turnstile
+    pthread_mutex_unlock(&rw->roomEmpty);                   //current writer releases the next writer
 
     return ret;
 }

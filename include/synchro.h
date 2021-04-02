@@ -37,19 +37,15 @@ typedef struct{
 typedef struct{
     lightswitch_t   readSwitch;     //lightswitch used to synchronise the readers (first locks, last unlocks)
     lightswitch_t   writeSwitch;    //lightswitch used to synchronise the writers (first locks, last unlocks)
-    pthread_cond_t  cond_noReaders; //condition variable used to exclude readers
-    pthread_cond_t  cond_noWriters; //condition variable used to exclude writers
-    uint8_t         noReaders;      //flag indicating if the noReaders condition has been met
-    uint8_t         noWriters;      //flag indicating if the noWriters condition has been met
+    pthread_mutex_t noReaders;      //mutex allowing writers to block readers
+    pthread_mutex_t noWriters;      //mutex allowing readers to block writers
 }readwrite_pr_t;
 
 //readers/writers structure (writers don't starve)
 typedef struct{
     lightswitch_t   readSwitch;         //lightswitch used to synchronise the readers (first locks, last unlocks)
-    pthread_cond_t  cond_turnstile;     //conditional variable indicating the turnstile has been reached by the writers
-    pthread_cond_t  cond_roomEmtpy;     //conditional variable indicating all the readers are done
-    uint8_t         turnstile;          //flag indicating if the turnstile condition has been met
-    uint8_t         roomEmpty;          //flag indicating if the roomEmpty condition has been met
+    pthread_mutex_t turnstile;          //mutex used to sync threads of the same type
+    pthread_mutex_t roomEmpty;          //mutex used to indicate whether all readers/writers are done and can let the others go
 }readwrite_ns_t;
 
 //barrier synchronisation functions
@@ -64,8 +60,8 @@ int fifo_push(fifo_t* fifo, void* elem);
 void* fifo_pop(fifo_t* fifo);
 
 //readers-writers synchronisation functions (writers have priority)
-int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
-int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
+int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex);
+int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex);
 readwrite_pr_t* rwprior_alloc();
 int rwprior_free(readwrite_pr_t* rw);
 int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg);
