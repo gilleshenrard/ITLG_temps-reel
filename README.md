@@ -33,8 +33,8 @@ Compilation and Use :
     void* fifo_pop(fifo_t* fifo);
 
 //readers-writers synchronisation functions (writers have priority)
-    int lightswitch_lock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
-    int lightswitch_unlock(lightswitch_t* light, pthread_cond_t* cond, uint8_t* flag);
+    int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex);
+    int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex);
     readwrite_t* rw_alloc();
     int rw_free(readwrite_t* rw);
     int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
@@ -48,12 +48,12 @@ Compilation and Use :
 ```
 
 ### 3. Changes
-* The readers and writers now wait between 300 ms and 1s
-* The no-starve algorithms have been implemented
-* Priorities have been set with nice() at the beginning of threads (1 for writers, 2 for readers)
+* The readers and writers now wait between 200 ms and 1s
+* The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
+* The niceness values are now 1 for readers and 10 for writers
 
 ### 4. To Do
 n/a
 
 ### 5. Known issues
-n/a
+Despite the priorities difference, the writers seems to still act often, and come in blocks, which means the algorithms are incorrect
