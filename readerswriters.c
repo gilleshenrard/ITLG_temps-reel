@@ -111,7 +111,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //allocate the readers/writers array
     for(uint16_t i = 0 ; i < nbthreads ; i++){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? 1 : 2));
+        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? 1 : 10));
         (*array)[i].onPrint = print_neutral;
     }
 
