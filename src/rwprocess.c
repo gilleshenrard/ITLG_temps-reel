@@ -108,7 +108,7 @@ int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
 
     if(*rd->data < rd->max && rd->onPrint)
-        rd->onPrint("Reader n°%03d reads : %hd", rd->thNum, *((int*)rd->data));
+        rd->onPrint("R-%03d-%02hd", rd->thNum, *((int*)rd->data));
 
     return 0;
 }
@@ -144,7 +144,7 @@ int updateData(void* writer){
 
     //update the data if not max yet
     if(*wr->data < wr->max && wr->onPrint)
-        wr->onPrint("Writer n°%03d writes : %hd", wr->thNum, ++*wr->data);
+        wr->onPrint("W-%03d-%02hd", wr->thNum, ++*wr->data);
 
     return 0;
 }
