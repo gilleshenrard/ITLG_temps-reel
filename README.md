@@ -53,6 +53,7 @@ Compilation and Use :
 * The niceness values can now be given as facultative program argument (both 0 if not specified) 
 * The lightswitches code is now also more compact
 * A function generating true 32 bits random numbers has been implemented
+* Messages are now non-formatted (no colour or weight change)
 
 ### 4. To Do
 n/a
