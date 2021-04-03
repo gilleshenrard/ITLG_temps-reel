@@ -7,7 +7,7 @@
 **      All threads will wait for a random amount of us before doing their task
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 23/03/2021
+** Last modified : 03/04/2021
 */
 #include <stdlib.h>
 #include <pthread.h>
@@ -111,7 +111,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //allocate the readers/writers array
     for(uint16_t i = 0 ; i < nbthreads ; i++){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? 1 : 10));
+        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? 10 : 1));
         (*array)[i].onPrint = print_neutral;
     }
 

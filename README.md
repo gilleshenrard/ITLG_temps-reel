@@ -50,7 +50,7 @@ Compilation and Use :
 ### 3. Changes
 * The readers and writers now wait between 200 ms and 1s
 * The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
-* The niceness values are now 1 for readers and 10 for writers
+* The niceness values are now 1 for readers and 10 for writers (corrected)
 
 ### 4. To Do
 n/a
