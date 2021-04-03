@@ -16,7 +16,8 @@
 #include "rwprocess.h"
 #include "screen.h"
 
-int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum, const uint16_t nbwriters);
+int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
+        const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters);
 int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
@@ -25,21 +26,35 @@ int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
     pthread_t* th_array = NULL;
     uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
+    uint8_t nice_r = 1, nice_w = 1;
 
     //check if the fifo size and file name have been provided in the program arguments
-	if(argc != 4){
-        print_error("usage : bin/readerswriters nbthreads nbwriters maximum");
+	if(argc != 4 && argc != 6){
+        print_error("usage : bin/readerswriters nbthreads nbwriters maximum [nice_readers nice_writers]");
 		exit(EXIT_FAILURE);
 	}
 	else
 	{
+        //assign the parameters
 		nbthreads = atoi(argv[1]);
 		nbwriters = atoi(argv[2]);
 		maximum = atoi(argv[3]);
 
+        //if nice scores have been given as arguments, assign them and check their values
+        if(argc == 6){
+            nice_r = atoi(argv[4]);
+            nice_w = atoi(argv[5]);
+
+            //score can't be negative due to uint8_t nature
+            if(nice_r > 20 || nice_w > 20){
+                print_error("usage : The nice numbers must be between 0 and 20 included");
+                exit(EXIT_FAILURE);
+            }
+        }
+
         //check if the minimum amount of writers is correct
         if(nbwriters < 1 || nbthreads < 2){
-        print_error("usage : There must be at least 1 writers and 2 threads");
+            print_error("usage : There must be at least 1 writers and 2 threads");
             exit(EXIT_FAILURE);
         }
 
@@ -54,7 +69,7 @@ int main(int argc, char *argv[]){
 	srand(time(NULL));
 
     //initialise the readers/writers structures
-    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum, nbwriters) < 0){
+    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum, nbwriters, nice_r, nice_w) < 0){
         print_error("main: error while initialising readers/writers");
         exit(EXIT_FAILURE);
     }
@@ -78,11 +93,14 @@ int main(int argc, char *argv[]){
 /*      Data shared by the readers/writers                                              */
 /*      Maximum value to reach by the readers/writers                                   */
 /*      Amount of writers amongst the threads                                           */
+/*      Nice score to assign to readers                                                 */
+/*      Nice score to assign to writers                                                 */
 /*  P : Create the array of readers/writers with the proper values + the array of thr.  */  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum, const uint16_t nbwriters){
+int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
+        const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w){
     readwrite_ns_t* rw = NULL;
 
     //allocate a readwrite structure shared between all the threads
@@ -111,7 +129,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //allocate the readers/writers array
     for(uint16_t i = 0 ; i < nbthreads ; i++){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? 10 : 1));
+        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? nice_w : nice_r));
         (*array)[i].onPrint = print_neutral;
     }
 

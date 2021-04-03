@@ -12,7 +12,7 @@ The code for the current assignment can be found on [the GitHub repository](http
 Compilation and Use :
 ```shell
     make
-    bin/readerswriters nbthreads nbwriters maximum
+    bin/readerswriters nbthreads nbwriters maximum [nice_readers nice_writers]
 
     make all
     make clean
@@ -50,7 +50,7 @@ Compilation and Use :
 ### 3. Changes
 * The readers now wait between 200 ms and 1s and the writers between 500ms and 1s
 * The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
-* The niceness values are now 1 for readers and 10 for writers (corrected)
+* The niceness values can now be given as facultative program argument (both 1 if not specified) 
 * The lightswitches code is now also more compact
 
 ### 4. To Do
