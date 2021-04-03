@@ -55,6 +55,7 @@ Compilation and Use :
 * A function generating true 32 bits random numbers has been implemented
 * Messages are now non-formatted (no colour or weight change)
 * Readers and writers now print machine-friendly messages
+* A shell script has been implemented to export program results in CSV files
 
 ### 4. To Do
 n/a
