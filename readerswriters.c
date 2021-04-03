@@ -26,7 +26,7 @@ int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
     pthread_t* th_array = NULL;
     uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
-    uint8_t nice_r = 1, nice_w = 1;
+    uint8_t nice_r = 0, nice_w = 0;
 
     //check if the fifo size and file name have been provided in the program arguments
 	if(argc != 4 && argc != 6){
