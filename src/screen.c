@@ -3,7 +3,7 @@
 ** Library regrouping screen-based functions
 ** ------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 16/03/2021
+** Last modified : 03/04/2021
 */
 #include "screen.h"
 #include <stdio.h>
@@ -76,4 +76,21 @@ void print_neutral(char* msg, ...)
     fprintf(stdout, "\033[%d;%dm%s\033[0m\n", NORMAL, RESET, final_msg);
 
     va_end(arg);
+}
+
+/************************************************************************/
+/*  I : messages to be displayed                                        */
+/*  P : displays the message without any format at all                  */
+/*  O : /                                                               */
+/************************************************************************/
+void print_noformat(char* msg, ...){
+
+    char final_msg[SZLINE] = {0};
+    va_list arg;
+
+    va_start(arg, msg);
+    vsprintf(final_msg, msg, arg);
+    va_end(arg);
+
+    fprintf(stdout, "%s\n", final_msg);
 }
