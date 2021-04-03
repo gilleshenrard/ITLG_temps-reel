@@ -16,6 +16,9 @@
 
 #!/bin/bash
 
+#create the directory in which put the files
+mkdir -p stat
+
 #to be ran 10 times
 for i in {1..10} ; do
     #run readerswriters without nice and export the output in a temp file
