@@ -334,11 +334,8 @@ int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex){
         return -1;
 
     pthread_mutex_lock(&light->mutex);          //current thread locks the switch mutex
-        light->counter++;                       //current thread increments the counter
-
-        if(light->counter == 1)                 //first thread locks the external mutex
+        if(++light->counter == 1)               //first thread locks the external mutex
             pthread_mutex_lock(mutex);
-
     pthread_mutex_unlock(&light->mutex);        //current thread releases the switch mutex
     
     return 0;
@@ -357,11 +354,8 @@ int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex){
         return -1;
 
     pthread_mutex_lock(&light->mutex);          //current thread locks the switch mutex
-        light->counter--;                       //current thread decrements the counter
-
-        if(!light->counter)                     //last thread unlocks the external mutex
+        if(!--light->counter)                   //last thread unlocks the external mutex
             pthread_mutex_unlock(mutex);
-
     pthread_mutex_unlock(&light->mutex);        //current thread releases the switch mutex
     
     return 0;

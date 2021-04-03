@@ -51,6 +51,7 @@ Compilation and Use :
 * The readers now wait between 200 ms and 1s and the writers between 500ms and 1s
 * The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
 * The niceness values are now 1 for readers and 10 for writers (corrected)
+* The lightswitches code is now also more compact
 
 ### 4. To Do
 n/a
