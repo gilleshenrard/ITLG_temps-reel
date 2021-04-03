@@ -54,6 +54,7 @@ Compilation and Use :
 * The lightswitches code is now also more compact
 * A function generating true 32 bits random numbers has been implemented
 * Messages are now non-formatted (no colour or weight change)
+* Readers and writers now print machine-friendly messages
 
 ### 4. To Do
 n/a
