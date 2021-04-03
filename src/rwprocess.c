@@ -90,7 +90,7 @@ void *reader_handler(void *reader){
     nice(rd->nice_value);
 
     do{
-        usleep(300000 + (rand() % 700000));
+        usleep(200000 + (rand() % 800000));
         rwnostarve_read(rd->rw, displayData, rd);
     }while (*rd->data < rd->max);
 
@@ -123,7 +123,7 @@ void *writer_handler(void *writer){
     nice(wr->nice_value);
 
     do{
-        usleep(300000 + (rand() % 700000));
+        usleep(500000 + (rand() % 500000));
         rwnostarve_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
