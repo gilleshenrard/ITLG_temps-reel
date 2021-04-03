@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 23/03/2021
+** Last modified : 03/04/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -86,11 +86,13 @@ int rwprocess_free(thrw_t* reader){
 /****************************************************************************************/
 void *reader_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
+    uint32_t t = 0;
 
     nice(rd->nice_value);
 
     do{
-        usleep(200000 + (rand() % 800000));
+        getLongRand(&t, 100000, 400000);
+        usleep(t);
         rwnostarve_read(rd->rw, displayData, rd);
     }while (*rd->data < rd->max);
 
@@ -119,11 +121,13 @@ int displayData(void* reader){
 /****************************************************************************************/
 void *writer_handler(void *writer){
     thrw_t* wr = (thrw_t*)writer;
+    uint32_t t = 0;
 
     nice(wr->nice_value);
 
     do{
-        usleep(500000 + (rand() % 500000));
+        getLongRand(&t, 300000, 1000000);
+        usleep(t);
         rwnostarve_write(wr->rw, updateData, wr);
     }while (*wr->data < wr->max);
 
@@ -141,6 +145,21 @@ int updateData(void* writer){
     //update the data if not max yet
     if(*wr->data < wr->max && wr->onPrint)
         wr->onPrint("Writer n°%03d writes : %hd", wr->thNum, ++*wr->data);
+
+    return 0;
+}
+
+/****************************************************************************************/
+/*  I : buffer in which the newly generated number will be stored                       */
+/*      min value of the rand number                                                    */
+/*      max value of the rand number                                                    */
+/*  P : Generate a 32 bits unsigned random number between min and max                   */
+/*  O : /                                                                               */
+/****************************************************************************************/
+int getLongRand(uint32_t* buf, const uint32_t min, const uint32_t max){
+    *buf = ((uint32_t)rand())<<16;      //generate the two MSB bytes (two random bytes shifted left)
+    *buf += (uint32_t)rand();           //generate the two LSB bytes (two random bytes)
+    *buf = min + (*buf % (max-min));    //crop the number generated so if fits between min and max
 
     return 0;
 }

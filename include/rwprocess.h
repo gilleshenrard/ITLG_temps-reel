@@ -18,4 +18,5 @@ void *reader_handler(void *reader);
 int displayData(void* reader);
 void *writer_handler(void *writer);
 int updateData(void* writer);
+int getLongRand(uint32_t* buf, const uint32_t min, const uint32_t max);
 #endif
