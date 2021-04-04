@@ -47,7 +47,8 @@ Compilation and Use :
     int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
 ```
 
-### 3. Changes
+### 3. Changes since V1
+* Readers and writers thread handlers have been merged to 1 thread handler
 * The readers now wait between 100 ms and 400ms and the writers between 300ms and 1s
 * The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
 * The niceness values can now be given as facultative program argument (both 0 if not specified) 

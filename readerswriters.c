@@ -7,7 +7,7 @@
 **      All threads will wait for a random amount of us before doing their task
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 03/04/2021
+** Last modified : 04/04/2021
 */
 #include <stdlib.h>
 #include <pthread.h>
@@ -18,7 +18,7 @@
 
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
         const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w);
-int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters);
+int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads);
 int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
 
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
     }
 
     //allocate and launch the threads
-    threads_launch(th_array, rw_array, nbthreads, nbwriters);
+    threads_launch(th_array, rw_array, nbthreads);
 
     //wait for all the threads to finish running
     threads_join(th_array, rw_array, nbthreads);
@@ -102,6 +102,7 @@ int main(int argc, char *argv[]){
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
         const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w){
     readwrite_ns_t* rw = NULL;
+    uint16_t i = 0;
 
     //allocate a readwrite structure shared between all the threads
     rw = rwnostarve_alloc();
@@ -127,10 +128,28 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
         return -1;
     }
 
-    //allocate the readers/writers array
-    for(uint16_t i = 0 ; i < nbthreads ; i++){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum, (i<nbwriters ? nice_w : nice_r));
+    //assign the proper values and functions to the writers
+    while(i < nbwriters){
+        rwprocess_assign(&(*array)[i], rw, i, data, maximum, nice_w);
+        (*array)[i].wait_min = 300000;
+        (*array)[i].wait_max = 1000000;
+        (*array)[i].onRW = rwnostarve_write;
+        (*array)[i].onCritical = updateData;
         (*array)[i].onPrint = print_noformat;
+
+        i++;
+    }
+
+    //assign the proper values and functions to the readers
+    while(i < nbthreads){
+        rwprocess_assign(&(*array)[i], rw, i, data, maximum, nice_r);
+        (*array)[i].wait_min = 100000;
+        (*array)[i].wait_max = 400000;
+        (*array)[i].onRW = rwnostarve_read;
+        (*array)[i].onCritical = displayData;
+        (*array)[i].onPrint = print_noformat;
+
+        i++;
     }
 
     return 0;
@@ -140,18 +159,17 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 /*  I : Threads array to allocate and launch                              				*/
 /*      Readers/writers array to use in the threads                                     */
 /*      Total amount of threads                                                         */
-/*      Amount of writers in the threads                                                */
 /*  P : Allocate all the threads as readers or writers and launch them all  			*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint16_t nbwriters){
+int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads){
     uint16_t i = 0;
     int ret = 0;
 
     //launch all the threads
     while(i < nbthreads){
-        ret = pthread_create(&th_array[i], NULL, (i < nbwriters ? writer_handler : reader_handler), (void*)&rw_array[i]);
+        ret = pthread_create(&th_array[i], NULL, thread_handler, (void*)&rw_array[i]);
 		if (ret){
             print_error("threads_launch : %s", strerror(ret));
 			free_rw(rw_array, th_array);

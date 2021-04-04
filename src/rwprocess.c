@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 03/04/2021
+** Last modified : 04/04/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -59,8 +59,12 @@ int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, u
     reader->thNum = thnum;
     reader->data = data;
     reader->max = max;
-    reader->onPrint = NULL;
     reader->nice_value = nice_value;
+    reader->wait_min = 0;
+    reader->wait_max = 0;
+    reader->onPrint = NULL;
+    reader->onCritical = NULL;
+    reader->onRW = NULL;
 
     return 0;
 }
@@ -80,20 +84,20 @@ int rwprocess_free(thrw_t* reader){
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*  P : Wait between 300 and 500ms, then display the thread number and the data value,   */
+/*  P : Wait between 300 and 500ms, then display the thread number and the data value,  */
 /*          then stop when the data reached the max value                               */
 /*  O : /                                                                               */
 /****************************************************************************************/
-void *reader_handler(void *reader){
+void *thread_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
     uint32_t t = 0;
 
     nice(rd->nice_value);
 
     do{
-        getLongRand(&t, 100000, 400000);
+        getLongRand(&t, rd->wait_min, rd->wait_max);
         usleep(t);
-        rwnostarve_read(rd->rw, displayData, rd);
+        (*rd->onRW)(rd->rw, rd->onCritical, rd);
     }while (*rd->data < rd->max);
 
     pthread_exit(NULL);
@@ -111,27 +115,6 @@ int displayData(void* reader){
         rd->onPrint("R-%03d-%02hd", rd->thNum, *((int*)rd->data));
 
     return 0;
-}
-
-/****************************************************************************************/
-/*  I : readers/writers type used in the synchro                                        */
-/*  P : Wait between 500 and 700us, then increment the data value (and display the      */
-/*          result), then stop when the data reached the max value                      */
-/*  O : /                                                                               */
-/****************************************************************************************/
-void *writer_handler(void *writer){
-    thrw_t* wr = (thrw_t*)writer;
-    uint32_t t = 0;
-
-    nice(wr->nice_value);
-
-    do{
-        getLongRand(&t, 300000, 1000000);
-        usleep(t);
-        rwnostarve_write(wr->rw, updateData, wr);
-    }while (*wr->data < wr->max);
-
-    pthread_exit(NULL);
 }
 
 /****************************************************************************************/
