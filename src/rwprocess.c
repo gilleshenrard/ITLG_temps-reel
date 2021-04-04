@@ -97,7 +97,7 @@ void *thread_handler(void *reader){
 
     do{
         //generate a random number of us to wait, then wait said amount
-        t = getLongRand(rd->wait_min, rd->wait_max);
+        t = rd->wait_min + ((uint32_t)rand() % (rd->wait_max - rd->wait_min));
         usleep(t);
 
         //perform either the reader action, or the writer action
@@ -134,20 +134,4 @@ int updateData(void* writer){
         wr->onPrint("W-%03d-%02hd", wr->thNum, ++*wr->data);
 
     return 0;
-}
-
-/****************************************************************************************/
-/*  I : min value of the rand number                                                    */
-/*      max value of the rand number                                                    */
-/*  P : Generate a 32 bits unsigned random number between min and max                   */
-/*  O : Random number generated                                                         */
-/****************************************************************************************/
-uint32_t getLongRand(const uint32_t min, const uint32_t max){
-    uint32_t buf = 0;
-
-    buf = ((uint32_t)rand())<<16;      //generate the two MSB bytes (two random bytes shifted left)
-    buf += (uint32_t)rand();           //generate the two LSB bytes (two random bytes)
-    buf = min + (buf % (max-min));    //crop the number generated so if fits between min and max
-
-    return buf;
 }
