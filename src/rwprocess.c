@@ -109,9 +109,13 @@ void rwprocess_print(thrw_t* reader){
 void *thread_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
     uint32_t t = 0;
+    int ret = 0;
 
     //set the thread priority (between 0 and 20, lower has higher priority)
-    nice(rd->nice_value);
+    errno = 0;
+    ret = nice(rd->nice_value);
+    if(ret != rd->nice_value || errno != 0)
+        rd->onPrint("thread %u : error on assigning nice (value : %d)", rd->thNum, ret);
 
     do{
         //generate a random number of us to wait, then wait said amount
