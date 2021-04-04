@@ -53,7 +53,6 @@ Compilation and Use :
 * The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
 * The niceness values can now be given as facultative program argument (both 0 if not specified) 
 * The lightswitches code is now also more compact
-* A function generating true 32 bits random numbers has been implemented
 * Messages are now non-formatted (no colour or weight change)
 * Readers and writers now print machine-friendly messages
 * A shell script has been implemented to export program results in CSV files
@@ -62,4 +61,4 @@ Compilation and Use :
 n/a
 
 ### 5. Known issues
-n/a
+The niceness score doesn't seem to affect the threads priority
