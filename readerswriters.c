@@ -16,6 +16,11 @@
 #include "rwprocess.h"
 #include "screen.h"
 
+#define RWAIT_MIN 100000
+#define RWAIT_MAX 400000
+#define WWAIT_MIN 300000
+#define WWAIT_MAX 1000000
+
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
         const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads);
@@ -131,8 +136,8 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     //assign the proper values and functions to the writers
     while(i < nbwriters){
         rwprocess_assign(&(*array)[i], rw, i, data, maximum, nice_w);
-        (*array)[i].wait_min = 300000;
-        (*array)[i].wait_max = 1000000;
+        (*array)[i].wait_min = WWAIT_MIN;
+        (*array)[i].wait_max = WWAIT_MAX;
         (*array)[i].onRW = rwnostarve_write;
         (*array)[i].onCritical = updateData;
         (*array)[i].onPrint = print_noformat;
@@ -143,8 +148,8 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     //assign the proper values and functions to the readers
     while(i < nbthreads){
         rwprocess_assign(&(*array)[i], rw, i, data, maximum, nice_r);
-        (*array)[i].wait_min = 100000;
-        (*array)[i].wait_max = 400000;
+        (*array)[i].wait_min = RWAIT_MIN;
+        (*array)[i].wait_max = RWAIT_MAX;
         (*array)[i].onRW = rwnostarve_read;
         (*array)[i].onCritical = displayData;
         (*array)[i].onPrint = print_noformat;
