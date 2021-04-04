@@ -83,6 +83,24 @@ int rwprocess_free(thrw_t* reader){
 }
 
 /****************************************************************************************/
+/*  I : readers/writer type of which print the information                              */
+/*  P : Print the information held by a reader/writer (used to debug)                   */
+/*  O : /                                                                               */
+/****************************************************************************************/
+void rwprocess_print(thrw_t* reader){
+    if (reader && reader->onPrint){
+        (*reader->onPrint)("rw=%p, thnum=%03u, data=%p, max=%u, nice=%2u, wait_min=%7u, wait_max=%7u",
+                           reader->rw,
+                           reader->thNum,
+                           reader->data,
+                           reader->max,
+                           reader->nice_value,
+                           reader->wait_min,
+                           reader->wait_max);
+    }
+}
+
+/****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
 /*  P : Wait for a random amount of time, then either increment (writers) or display    */
 /*          (readers) the common data until the max value has been reached              */

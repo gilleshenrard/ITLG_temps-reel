@@ -20,6 +20,7 @@ typedef struct{
 thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value);
 int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value);
 int rwprocess_free(thrw_t* reader);
+void rwprocess_print(thrw_t* reader);
 void *thread_handler(void *reader);
 int displayData(void* reader);
 int updateData(void* writer);
