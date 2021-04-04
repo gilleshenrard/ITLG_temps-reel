@@ -23,5 +23,5 @@ int rwprocess_free(thrw_t* reader);
 void *thread_handler(void *reader);
 int displayData(void* reader);
 int updateData(void* writer);
-int getLongRand(uint32_t* buf, const uint32_t min, const uint32_t max);
+uint32_t getLongRand(const uint32_t min, const uint32_t max);
 #endif

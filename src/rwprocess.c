@@ -84,19 +84,23 @@ int rwprocess_free(thrw_t* reader){
 
 /****************************************************************************************/
 /*  I : readers/writers type used in the synchro                                        */
-/*  P : Wait between 300 and 500ms, then display the thread number and the data value,  */
-/*          then stop when the data reached the max value                               */
+/*  P : Wait for a random amount of time, then either increment (writers) or display    */
+/*          (readers) the common data until the max value has been reached              */
 /*  O : /                                                                               */
 /****************************************************************************************/
 void *thread_handler(void *reader){
     thrw_t* rd = (thrw_t*)reader;
     uint32_t t = 0;
 
+    //set the thread priority (between 0 and 20, lower has higher priority)
     nice(rd->nice_value);
 
     do{
-        getLongRand(&t, rd->wait_min, rd->wait_max);
+        //generate a random number of us to wait, then wait said amount
+        t = getLongRand(rd->wait_min, rd->wait_max);
         usleep(t);
+
+        //perform either the reader action, or the writer action
         (*rd->onRW)(rd->rw, rd->onCritical, rd);
     }while (*rd->data < rd->max);
 
@@ -133,16 +137,17 @@ int updateData(void* writer){
 }
 
 /****************************************************************************************/
-/*  I : buffer in which the newly generated number will be stored                       */
-/*      min value of the rand number                                                    */
+/*  I : min value of the rand number                                                    */
 /*      max value of the rand number                                                    */
 /*  P : Generate a 32 bits unsigned random number between min and max                   */
-/*  O : /                                                                               */
+/*  O : Random number generated                                                         */
 /****************************************************************************************/
-int getLongRand(uint32_t* buf, const uint32_t min, const uint32_t max){
-    *buf = ((uint32_t)rand())<<16;      //generate the two MSB bytes (two random bytes shifted left)
-    *buf += (uint32_t)rand();           //generate the two LSB bytes (two random bytes)
-    *buf = min + (*buf % (max-min));    //crop the number generated so if fits between min and max
+uint32_t getLongRand(const uint32_t min, const uint32_t max){
+    uint32_t buf = 0;
 
-    return 0;
+    buf = ((uint32_t)rand())<<16;      //generate the two MSB bytes (two random bytes shifted left)
+    buf += (uint32_t)rand();           //generate the two LSB bytes (two random bytes)
+    buf = min + (buf % (max-min));    //crop the number generated so if fits between min and max
+
+    return buf;
 }
