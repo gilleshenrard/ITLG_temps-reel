@@ -2,6 +2,8 @@
 #define READWRITE_THREAD_INCLUDED
 #include "synchro.h"
 
+#define NONICE 255
+
 typedef struct{
     uint16_t        thNum;                          //thread number
     uint16_t*       data;                           //data to be manipulated by either readers or writers

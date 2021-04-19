@@ -115,11 +115,12 @@ void *thread_handler(void *reader){
     int ret = 0;
 
     //set the thread priority (between 0 and 20, lower has higher priority)
-    errno = 0;
-    ret = nice(rd->nice_value);
-    if(ret != rd->nice_value || errno != 0)
-        rd->onPrint("thread %u : error on assigning nice (value : %d)", rd->thNum, ret);
-
+    if(rd->nice_value != NONICE){
+        errno = 0;
+        ret = nice(rd->nice_value);
+        if(ret != rd->nice_value || errno != 0)
+            rd->onPrint("thread %u : error on assigning nice (value : %d)", rd->thNum, ret);
+    }
     //wait for all readers and writers to be at the barrier
     barrier_sync(rd->barrier, NULL, NULL);
 
