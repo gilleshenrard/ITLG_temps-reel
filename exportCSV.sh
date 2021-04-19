@@ -20,20 +20,20 @@
 mkdir -p stat
 
 #to be ran 10 times
-for i in {1..10} ; do
+for i in {1..100} ; do
     #run readerswriters without nice and export the output in a temp file
     echo "without nice, run #$i"
-    bin/readerswriters 20 5 20 > stat/rw_nonice_20-5-20.txt
+    bin/readerswriters 500 200 40 > stat/rw_nonice_500-200-40.txt
 
     #run readerswriters with nice and export the output in a temp file
     echo "with nice, run #$i"
-    bin/readerswriters 20 5 20 1 10 > stat/rw_nice_20-5-20.txt
+    bin/readerswriters 500 200 40 1 10 > stat/rw_nice_500-200-40.txt
 
     #compute the amount of readers outputs with and without nice and append both in CSV files
-    cat stat/rw_nonice_20-5-20.txt | grep -i r | wc -l >> stat/rw_nonice_20-5-20.csv
-    cat stat/rw_nice_20-5-20.txt | grep -i r | wc -l >> stat/rw_nice_20-5-20.csv
+    cat stat/rw_nonice_500-200-40.txt | grep -i r | wc -l >> stat/rw_nonice_500-200-40.csv
+    cat stat/rw_nice_500-200-40.txt | grep -i r | wc -l >> stat/rw_nice_500-200-40.csv
 done
 
 #delete temp files
-rm stat/rw_nonice_20-5-20.txt
-rm stat/rw_nice_20-5-20.txt
+rm stat/rw_nonice_500-200-40.txt
+rm stat/rw_nice_500-200-40.txt
