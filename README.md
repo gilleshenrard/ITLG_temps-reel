@@ -57,6 +57,7 @@ Compilation and Use :
 * Readers and writers now print machine-friendly messages
 * A shell script has been implemented to export program results in CSV files
 * A debug function to print reader/writer field values has been implemented
+* A barrier has been added to make sure all threads start at the same time
 
 ### 4. To Do
 n/a

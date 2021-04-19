@@ -7,7 +7,7 @@
 **      All threads will wait for a random amount of us before doing their task
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 04/04/2021
+** Last modified : 19/04/2021
 */
 #include <stdlib.h>
 #include <pthread.h>
@@ -107,6 +107,7 @@ int main(int argc, char *argv[]){
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
         const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w){
     readwrite_ns_t* rw = NULL;
+    barrier_t* bar = NULL;
     uint16_t i = 0;
 
     //allocate a readwrite structure shared between all the threads
@@ -116,10 +117,19 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
         return -1;
     }
 
+    //allocate a barrier structure shared between all the threads
+    bar = barrier_alloc(nbthreads);
+    if(!bar){
+        rwnostarve_free(rw);
+        print_error("init_rw : %s", strerror(ENOMEM));
+        return -1;
+    }
+
     //allocate memory for the whole readers/writers array
     *array = calloc(nbthreads, sizeof(thrw_t));
     if(!*array){
         rwnostarve_free(rw);
+        barrier_free(bar);
         print_error("init_rw : %s", strerror(ENOMEM));
         return -1;
     }
@@ -135,7 +145,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //assign the proper values and functions to the writers
     while(i < nbwriters){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum, nice_w);
+        rwprocess_assign(&(*array)[i], rw, bar, i, data, maximum, nice_w);
         (*array)[i].wait_min = WWAIT_MIN;
         (*array)[i].wait_max = WWAIT_MAX;
         (*array)[i].onRW = rwnostarve_write;
@@ -147,7 +157,7 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 
     //assign the proper values and functions to the readers
     while(i < nbthreads){
-        rwprocess_assign(&(*array)[i], rw, i, data, maximum, nice_r);
+        rwprocess_assign(&(*array)[i], rw, bar, i, data, maximum, nice_r);
         (*array)[i].wait_min = RWAIT_MIN;
         (*array)[i].wait_max = RWAIT_MAX;
         (*array)[i].onRW = rwnostarve_read;

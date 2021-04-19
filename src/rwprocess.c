@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 04/04/2021
+** Last modified : 19/04/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -14,6 +14,7 @@
 
 /****************************************************************************************/
 /*  I : readers/writers type used to synchronise readers                                */
+/*      barrier type used to make sure all threads start at the same time               */
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
 /*      Max value the data can take                                                     */
@@ -22,7 +23,7 @@
 /*  O : On success, a new reader/writer structure is returned                           */
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
+thrw_t* rwprocess_alloc(readwrite_ns_t* rw, barrier_t* bar, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
     thrw_t* reader = NULL;
 
     //attempt to allocate memory for the new reader/writer
@@ -30,7 +31,7 @@ thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data
     reader = calloc(1, sizeof(thrw_t));
 
     //fill its fields with the values received
-    if(rwprocess_assign(reader, rw, thnum, data, max, nice_value) < 0)
+    if(rwprocess_assign(reader, rw, bar, thnum, data, max, nice_value) < 0)
         return NULL;
     else
         return reader;
@@ -39,6 +40,7 @@ thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data
 /****************************************************************************************/
 /*  I : readers/writer type to fill                                                     */
 /*      readers/writers type used to synchronise readers                                */
+/*      barrier type used to make sure all threads start at the same time               */
 /*      Thread number                                                                   */
 /*      Pointer to the data shared between threads                                      */
 /*      Max value the data can take                                                     */
@@ -47,7 +49,7 @@ thrw_t* rwprocess_alloc(readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
+int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, barrier_t* bar, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
     //check if the readwrite structure has been allocated
     if(!reader){
         errno = ENOMEM;
@@ -56,6 +58,7 @@ int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, const uint16_t thnum, u
 
     //populate the readwrite structure fields
     reader->rw = rw;
+    reader->barrier = bar;
     reader->thNum = thnum;
     reader->data = data;
     reader->max = max;
@@ -116,6 +119,9 @@ void *thread_handler(void *reader){
     ret = nice(rd->nice_value);
     if(ret != rd->nice_value || errno != 0)
         rd->onPrint("thread %u : error on assigning nice (value : %d)", rd->thNum, ret);
+
+    //wait for all readers and writers to be at the barrier
+    barrier_sync(rd->barrier, NULL, NULL);
 
     do{
         //generate a random number of us to wait, then wait said amount
