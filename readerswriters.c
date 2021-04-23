@@ -21,10 +21,12 @@
 #define WWAIT_MIN 300000
 #define WWAIT_MAX 1000000
 
-int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* nice_r, uint8_t* nice_w);
+enum sched_type {NONE, FIFO, NICE};
+
+int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* sched, uint8_t* nice_r, uint8_t* nice_w);
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
         const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w);
-int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads);
+int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint8_t sched);
 int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
 
@@ -39,10 +41,10 @@ int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
     pthread_t* th_array = NULL;
     uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
-    uint8_t nice_r = NONICE, nice_w = NONICE;
+    uint8_t nice_r = NONICE, nice_w = NONICE, sched = NONE;
 
     //check program arguments and recover values given
-    if(check_args(argc, argv, &nbthreads, &nbwriters, &maximum, &nice_r, &nice_w) < 0){
+    if(check_args(argc, argv, &nbthreads, &nbwriters, &maximum, &sched, &nice_r, &nice_w) < 0){
         print_error("wrong amount or values set for program arguments");
 		exit(EXIT_FAILURE);
     }
@@ -57,7 +59,10 @@ int main(int argc, char *argv[]){
     }
 
     //allocate and launch the threads
-    threads_launch(th_array, rw_array, nbthreads);
+    if(threads_launch(th_array, rw_array, nbthreads, sched) < 0){
+        print_error("Error while launching threads");
+        exit(EXIT_FAILURE);
+    }
 
     //wait for all the threads to finish running
     threads_join(th_array, rw_array, nbthreads);
@@ -74,13 +79,14 @@ int main(int argc, char *argv[]){
 /*		Amount of threads to create     												*/
 /*      Amount of writers amongst the threads                                           */
 /*      Maximum value to reach by the readers/writers                                   */
+/*      Method used to prioritise threads (none, nice(), FIFO scheduler, ...)           */
 /*      Nice score to assign to readers                                                 */
 /*      Nice score to assign to writers                                                 */
 /*  P : Check if the program arguments are correct and transform them into values       */
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* nice_r, uint8_t* nice_w){
+int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* sched, uint8_t* nice_r, uint8_t* nice_w){
     //check if the fifo size and file name have been provided in the program arguments
 	if(argc != 5 && argc != 7){
         print_error("usage : ");
@@ -96,16 +102,16 @@ int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t*
 		*nbwr = atoi(argv[2]);
 		*max = atoi(argv[3]);
 
-        //if nice scores have been given as arguments, assign them and check their values
-        if(argc == 7){
-            *nice_r = atoi(argv[4]);
-            *nice_w = atoi(argv[5]);
-
-            //score can't be negative due to uint8_t nature
-            if(*nice_r > 20 || *nice_w > 20){
-                print_error("usage : The nice numbers must be between 0 and 20 included");
-		        return -1;
-            }
+        //retrieve the threads priorisation method
+        if(!strcmp(argv[4], "none"))
+            *sched = NONE;
+        else if(!strcmp(argv[4], "nice"))
+            *sched = NICE;
+        else if(!strcmp(argv[4], "fifo"))
+            *sched = FIFO;
+        else{
+            print_error("usage : Unknown priorisation method : %s", argv[4]);
+            return -1;
         }
 
         //check if the minimum amount of writers is correct
@@ -118,6 +124,25 @@ int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t*
         if(*nbwr >= *nbth){
             print_error("usage : The amount of writers must be inferior to the amount of threads");
             return -1;
+        }
+
+        //check if amount of threads is set with FIFO scheduling
+        //  (priorities are incremental at each thread, so no more than 19)
+        if(*sched == FIFO && *nbth >= 20){
+            print_error("usage : With the FIFO scheduling method, no more than 20 threads can be created");
+            return -1;
+        }
+
+        //if nice scores have been given as arguments, assign them and check their values
+        if(argc == 7){
+            *nice_r = atoi(argv[5]);
+            *nice_w = atoi(argv[6]);
+
+            //score can't be negative due to uint8_t nature
+            if(*nice_r > 20 || *nice_w > 20){
+                print_error("usage : The nice numbers must be between 0 and 20 included");
+		        return -1;
+            }
         }
 	}
 
@@ -207,25 +232,70 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
 /*  I : Threads array to allocate and launch                              				*/
 /*      Readers/writers array to use in the threads                                     */
 /*      Total amount of threads                                                         */
+/*      Scheduling method used to prioritise threads                                    */
 /*  P : Allocate all the threads as readers or writers and launch them all  			*/  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads){
+int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint8_t sched){
     uint16_t i = 0;
-    int ret = 0;
+    int err = 0;
+    pthread_attr_t *attr = NULL;
+    struct sched_param param;
+
+    //if scheduling policy set as FIFO
+    if(sched == FIFO){
+        //allocate a thread attributes structure
+        attr = calloc(1, sizeof(pthread_attr_t));
+        if(!attr){
+            print_error("threads_launch : calloc : %s", strerror(ENOMEM));
+            return -1;
+        }
+
+        //set its default values
+        pthread_attr_init (attr);
+        
+        //set the scheduling policy as FIFO
+        if ((err = pthread_attr_setschedpolicy(attr, SCHED_FIFO)) != 0) {
+            print_error("threads_launch: setschedpolicy: %s", strerror(err));
+            free(attr);
+            return -1;
+        }
+
+        if ((err = pthread_attr_setinheritsched(attr, PTHREAD_EXPLICIT_SCHED)) != 0) {
+            print_error("threads_launch: setinheritsched: %s", strerror(err));
+            free(attr);
+            return -1;
+        }
+    }
 
     //launch all the threads
     while(i < nbthreads){
-        ret = pthread_create(&th_array[i], NULL, thread_handler, (void*)&rw_array[i]);
-		if (ret){
-            print_error("threads_launch : %s", strerror(ret));
+        //if FIFO scheduling policy 
+        if(sched == FIFO){
+            //set the thread priority (descendant for each new thread)
+            param.sched_priority = i + 1;
+
+            //fixate parameters needed to the thread attributes
+            if ((err = pthread_attr_setschedparam(attr, & param)) != 0) {
+                print_error("threads_launch: setschedparam: %s", strerror(err));
+                free(attr);
+                return -1;
+            }
+        }
+
+        //launch a thread
+        err = pthread_create(&th_array[i], attr, thread_handler, (void*)&rw_array[i]);
+		if (err){
+            print_error("threads_launch : create: %s", strerror(err));
 			free_rw(rw_array, th_array);
-			exit(EXIT_FAILURE);
+            free(attr);
+			return -1;
 		}
         i++;
     }
 
+    free(attr);
     return 0;
 }
 

@@ -12,7 +12,9 @@ The code for the current assignment can be found on [the GitHub repository](http
 Compilation and Use :
 ```shell
     make
-    bin/readerswriters nbthreads nbwriters maximum [nice_readers nice_writers]
+    bin/readerswriters nbthreads nbwriters maximum none
+    bin/readerswriters nbthreads nbwriters maximum fifo
+    bin/readerswriters nbthreads nbwriters maximum nice nice_readers nice_writers
 
     make all
     make clean
@@ -50,9 +52,10 @@ Compilation and Use :
 ### 3. Changes since V3
 * Readers, in addition to their random waiting time between loops, now wait between
     100 ms and 400 ms during their critical section (to simulate long reading time)
+* The FIFO scheduling method has been implemented
 
 ### 4. To Do
 n/a
 
 ### 5. Known issues
-The niceness score doesn't seem to affect the threads priority
+n/a
