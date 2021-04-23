@@ -7,7 +7,7 @@
 **      All threads will wait for a random amount of us before doing their task
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 19/04/2021
+** Last modified : 23/04/2021
 */
 #include <stdlib.h>
 #include <pthread.h>
@@ -21,54 +21,31 @@
 #define WWAIT_MIN 300000
 #define WWAIT_MAX 1000000
 
+int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* nice_r, uint8_t* nice_w);
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
         const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads);
 int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
 
+/****************************************************************************************/
+/*  I : Amount of arguments passed to the programs                          		    */
+/*      List of program arguments                                                       */
+/*  P : Main program function                                                           */
+/*  O : 0 if no error                                                                   */
+/*	    1 otherwise																		*/
+/****************************************************************************************/
 int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
     pthread_t* th_array = NULL;
     uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
     uint8_t nice_r = NONICE, nice_w = NONICE;
 
-    //check if the fifo size and file name have been provided in the program arguments
-	if(argc != 4 && argc != 6){
-        print_error("usage : bin/readerswriters nbthreads nbwriters maximum [nice_readers nice_writers]");
+    //check program arguments and recover values given
+    if(check_args(argc, argv, &nbthreads, &nbwriters, &maximum, &nice_r, &nice_w) < 0){
+        print_error("wrong amount or values set for program arguments");
 		exit(EXIT_FAILURE);
-	}
-	else
-	{
-        //assign the parameters
-		nbthreads = atoi(argv[1]);
-		nbwriters = atoi(argv[2]);
-		maximum = atoi(argv[3]);
-
-        //if nice scores have been given as arguments, assign them and check their values
-        if(argc == 6){
-            nice_r = atoi(argv[4]);
-            nice_w = atoi(argv[5]);
-
-            //score can't be negative due to uint8_t nature
-            if(nice_r > 20 || nice_w > 20){
-                print_error("usage : The nice numbers must be between 0 and 20 included");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        //check if the minimum amount of writers is correct
-        if(nbwriters < 1 || nbthreads < 2){
-            print_error("usage : There must be at least 1 writers and 2 threads");
-            exit(EXIT_FAILURE);
-        }
-
-        //check if the amount of writers is correct
-        if(nbwriters >= nbthreads){
-        print_error("usage : The amount of writers must be inferior to the amount of threads");
-            exit(EXIT_FAILURE);
-        }
-	}
+    }
 
     //initialise time randimisation
 	srand(time(NULL));
@@ -89,6 +66,62 @@ int main(int argc, char *argv[]){
     free_rw(rw_array, th_array);
 
     exit(EXIT_SUCCESS);
+}
+
+/****************************************************************************************/
+/*  I : Amount of arguments passed to the programs                          		    */
+/*      List of program arguments                                                       */
+/*		Amount of threads to create     												*/
+/*      Amount of writers amongst the threads                                           */
+/*      Maximum value to reach by the readers/writers                                   */
+/*      Nice score to assign to readers                                                 */
+/*      Nice score to assign to writers                                                 */
+/*  P : Check if the program arguments are correct and transform them into values       */
+/*  O : 0 if no error                                                                   */
+/*	   -1 otherwise																		*/
+/****************************************************************************************/
+int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* nice_r, uint8_t* nice_w){
+    //check if the fifo size and file name have been provided in the program arguments
+	if(argc != 5 && argc != 7){
+        print_error("usage : ");
+        print_error("bin/readerswriters nbthreads nbwriters maximum none");
+        print_error("bin/readerswriters nbthreads nbwriters maximum fifo");
+        print_error("bin/readerswriters nbthreads nbwriters maximum nice nice_readers nice_writers");
+		return -1;
+	}
+	else
+	{
+        //assign the parameters
+		*nbth = atoi(argv[1]);
+		*nbwr = atoi(argv[2]);
+		*max = atoi(argv[3]);
+
+        //if nice scores have been given as arguments, assign them and check their values
+        if(argc == 7){
+            *nice_r = atoi(argv[4]);
+            *nice_w = atoi(argv[5]);
+
+            //score can't be negative due to uint8_t nature
+            if(*nice_r > 20 || *nice_w > 20){
+                print_error("usage : The nice numbers must be between 0 and 20 included");
+		        return -1;
+            }
+        }
+
+        //check if the minimum amount of writers is correct
+        if(*nbwr < 1 || *nbth < 2){
+            print_error("usage : There must be at least 1 writers and 2 threads");
+		    return -1;
+        }
+
+        //check if the amount of writers is correct
+        if(*nbwr >= *nbth){
+            print_error("usage : The amount of writers must be inferior to the amount of threads");
+            return -1;
+        }
+	}
+
+    return 0;
 }
 
 /****************************************************************************************/
