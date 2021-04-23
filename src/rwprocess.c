@@ -145,13 +145,15 @@ int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
     uint32_t t = 0;
 
-    //wait for a random amount of time (simulate a slow reading task)
-    t = RPROCWAIT_MIN + ((uint32_t)rand() % (RPROCWAIT_MAX - RPROCWAIT_MIN));
-    usleep(t);
-
-    //display the data if max not reached yet
-    if(*rd->data < rd->max && rd->onPrint)
+    //if max not reached yet
+    if(*rd->data < rd->max && rd->onPrint){
+        //wait for a random amount of time (simulate a slow reading task)
+        t = RPROCWAIT_MIN + ((uint32_t)rand() % (RPROCWAIT_MAX - RPROCWAIT_MIN));
+        usleep(t);
+        
+        //display the data
         rd->onPrint("R-%03d-%02hd", rd->thNum, *((int*)rd->data));
+    }
 
     return 0;
 }
