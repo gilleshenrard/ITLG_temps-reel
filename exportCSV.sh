@@ -23,23 +23,23 @@ mkdir -p stat
 for i in {1..100} ; do
     #run readerswriters without nice and export the output in a temp file
     echo "without scheduling, run #$i"
-    bin/readerswriters 19 4 20 none > stat/rw_nosched_19-4-20.txt
+    bin/readerswriters 19 4 40 none > stat/rw_nosched_19-4-40.txt
 
     #run readerswriters with nice and export the output in a temp file
     echo "with nice(), run #$i"
-    bin/readerswriters 19 4 20 nice 1 10 > stat/rw_nice_19-4-20.txt
+    bin/readerswriters 19 4 40 nice 1 10 > stat/rw_nice_19-4-40.txt
 
     #run readerswriters with nice and export the output in a temp file
     echo "with FIFO, run #$i"
-    bin/readerswriters 19 4 20 fifo > stat/rw_fifo_19-4-20.txt
+    bin/readerswriters 19 4 40 fifo > stat/rw_fifo_19-4-40.txt
 
     #compute the amount of readers outputs with and without nice and append both in CSV files
-    cat stat/rw_nosched_19-4-20.txt | grep -i r | wc -l >> stat/rw_nosched_19-4-20.csv
-    cat stat/rw_nice_19-4-20.txt | grep -i r | wc -l >> stat/rw_nice_19-4-20.csv
-    cat stat/rw_fifo_19-4-20.txt | grep -i r | wc -l >> stat/rw_fifo_19-4-20.csv
+    cat stat/rw_nosched_19-4-40.txt | grep -i r | wc -l >> stat/rw_nosched_19-4-40.csv
+    cat stat/rw_nice_19-4-40.txt | grep -i r | wc -l >> stat/rw_nice_19-4-40.csv
+    cat stat/rw_fifo_19-4-40.txt | grep -i r | wc -l >> stat/rw_fifo_19-4-40.csv
 done
 
 #delete temp files
-rm stat/rw_nosched_19-4-20.txt
-rm stat/rw_nice_19-4-20.txt
-rm stat/rw_fifo_19-4-20.txt
+rm stat/rw_nosched_19-4-40.txt
+rm stat/rw_nice_19-4-40.txt
+rm stat/rw_fifo_19-4-40.txt
