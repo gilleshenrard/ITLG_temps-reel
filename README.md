@@ -47,17 +47,9 @@ Compilation and Use :
     int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
 ```
 
-### 3. Changes since V1
-* Readers and writers thread handlers have been merged to 1 thread handler
-* The readers now wait between 100 ms and 400ms and the writers between 300ms and 1s
-* The readers/writers algorithms now implement the solution offered by Laura Binacchi (mutexes instead of condition variables)
-* The niceness values can now be given as facultative program argument (both 0 if not specified) 
-* The lightswitches code is now also more compact
-* Messages are now non-formatted (no colour or weight change)
-* Readers and writers now print machine-friendly messages
-* A shell script has been implemented to export program results in CSV files
-* A debug function to print reader/writer field values has been implemented
-* A barrier has been added to make sure all threads start at the same time
+### 3. Changes since V3
+* Readers, in addition to their random waiting time between loops, now wait between
+    100 ms and 400 ms during their critical section (to simulate long reading time)
 
 ### 4. To Do
 n/a

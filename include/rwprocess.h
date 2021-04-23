@@ -3,6 +3,8 @@
 #include "synchro.h"
 
 #define NONICE 255
+#define RPROCWAIT_MIN 100000
+#define RPROCWAIT_MAX 400000
 
 typedef struct{
     uint16_t        thNum;                          //thread number

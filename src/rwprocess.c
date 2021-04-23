@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 19/04/2021
+** Last modified : 23/04/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -143,7 +143,13 @@ void *thread_handler(void *reader){
 /****************************************************************************************/
 int displayData(void* reader){
     thrw_t* rd = (thrw_t*)reader;
+    uint32_t t = 0;
 
+    //wait for a random amount of time (simulate a slow reading task)
+    t = RPROCWAIT_MIN + ((uint32_t)rand() % (RPROCWAIT_MAX - RPROCWAIT_MIN));
+    usleep(t);
+
+    //display the data if max not reached yet
     if(*rd->data < rd->max && rd->onPrint)
         rd->onPrint("R-%03d-%02hd", rd->thNum, *((int*)rd->data));
 
