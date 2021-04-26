@@ -3,7 +3,7 @@
 ** Library regrouping threads synchronisation functions
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 23/03/2021
+** Last modified : 26/03/2021
 */
 #include <pthread.h>
 #include <stdlib.h>
@@ -448,14 +448,16 @@ int rwprior_free(readwrite_pr_t* rw){
 }
 
 /****************************************************************************************/
-/*  I : readers/writers type used in the synchro                                        */
+/*  I : readers/writers type used in the synchro (as void for compatibility with        */
+/*          nostarve)                                                                   */
 /*      critical action for the readers to perform                                      */
 /*      argument used in the critical action                                            */
 /*  P : Lock the data for the current readers to perform an action (will be interrupt.  */
 /*          when a writer shows up (they have the priority))                            */
 /*  O : return code of the action for the readers to perform                            */
 /****************************************************************************************/
-int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
+int rwprior_read(void* rdwt, int (doAction)(void*), void* action_arg){
+    readwrite_pr_t* rw = (readwrite_pr_t*)rdwt;
     int ret = 0;
 
     pthread_mutex_lock(&rw->noReaders);                         //current reader waits for the readers mutex to be available
@@ -472,14 +474,16 @@ int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
 }
 
 /****************************************************************************************/
-/*  I : readers/writers type used in the synchro                                        */
+/*  I : readers/writers type used in the synchro (as void for compatibility with        */
+/*          nostarve)                                                                   */
 /*      critical action for the readers to perform                                      */
 /*      argument used in the critical action                                            */
 /*  P : Lock the data for the current writers to perform an action (will block          */
 /*          the readers because higher priority)                                        */
 /*  O : return code of the action for the writers to perform                            */
 /****************************************************************************************/
-int rwprior_write(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg){
+int rwprior_write(void* rdwt, int (doAction)(void*), void* action_arg){
+    readwrite_pr_t* rw = (readwrite_pr_t*)rdwt;
     int ret = 0;
 
     lightswitch_lock(&rw->writeSwitch, &rw->noReaders);     //first writer locks readers
@@ -570,14 +574,15 @@ int rwnostarve_free(readwrite_ns_t* rw){
 }
 
 /****************************************************************************************/
-/*  I : readers/writers type used in the synchro                                        */
+/*  I : readers/writers type used in the synchro (as void for compatibility with prior) */
 /*      critical action for the readers to perform                                      */
 /*      argument used in the critical action                                            */
 /*  P : Lock the data for the current readers to perform an action (will lock the       */
 /*          writers outside)                                                            */
 /*  O : return code of the action for the readers to perform                            */
 /****************************************************************************************/
-int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg){
+int rwnostarve_read(void* rdwt, int (doAction)(void*), void* action_arg){
+    readwrite_ns_t* rw = (readwrite_ns_t*)rdwt;
     int ret = 0;
 
     pthread_mutex_lock(&rw->turnstile);                     //current reader waits for the turnstile to be available
@@ -592,14 +597,15 @@ int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg)
 }
 
 /****************************************************************************************/
-/*  I : readers/writers type used in the synchro                                        */
+/*  I : readers/writers type used in the synchro (as void for compatibility with prior) */
 /*      critical action for the readers to perform                                      */
 /*      argument used in the critical action                                            */
 /*  P : Lock the data for the current writers to perform an action, but wait for all    */
 /*          the readers currently reading to be done                                    */
 /*  O : return code of the action for the writers to perform                            */
 /****************************************************************************************/
-int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg){
+int rwnostarve_write(void* rdwt, int (doAction)(void*), void* action_arg){
+    readwrite_ns_t* rw = (readwrite_ns_t*)rdwt;
     int ret = 0;
 
     pthread_mutex_lock(&rw->turnstile);                     //current writer waits for the turnstile to be available

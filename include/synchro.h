@@ -64,13 +64,13 @@ int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex);
 int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex);
 readwrite_pr_t* rwprior_alloc();
 int rwprior_free(readwrite_pr_t* rw);
-int rwprior_read(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg);
-int rwprior_write(readwrite_pr_t* rw, int (doAction)(void*), void* action_arg);
+int rwprior_read(void* rw, int (doAction)(void*), void* action_arg);
+int rwprior_write(void* rw, int (doAction)(void*), void* action_arg);
 
 //readers-writers synchronisation functions (writers don't starve)
 readwrite_ns_t* rwnostarve_alloc();
 int rwnostarve_free(readwrite_ns_t* rw);
-int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
-int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
+int rwnostarve_read(void* rw, int (doAction)(void*), void* action_arg);
+int rwnostarve_write(void* rw, int (doAction)(void*), void* action_arg);
 
 #endif

@@ -17,7 +17,7 @@ typedef struct{
     uint32_t        wait_max;                       //maximum time to wait before reading/writing
     void            (*onPrint)(char*, ...);         //function used to print info on screen
     int             (*onCritical)(void*);           //function used in the thread's critical section
-    int             (*onRW)(readwrite_ns_t* rw,     //function used in the readers/writers synchronisation
+    int             (*onRW)(void* rw,               //function used in the readers/writers synchronisation
                             int (doAction)(void*),
                             void* action_arg);
 }thrw_t;
