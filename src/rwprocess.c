@@ -4,7 +4,7 @@
 **      (as described in the assignment)
 ** ----------------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 23/04/2021
+** Last modified : 26/04/2021
 */
 #include "rwprocess.h"
 #include <unistd.h>
@@ -23,7 +23,7 @@
 /*  O : On success, a new reader/writer structure is returned                           */
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
-thrw_t* rwprocess_alloc(readwrite_ns_t* rw, barrier_t* bar, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
+thrw_t* rwprocess_alloc(void* rw, barrier_t* bar, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
     thrw_t* reader = NULL;
 
     //attempt to allocate memory for the new reader/writer
@@ -49,7 +49,7 @@ thrw_t* rwprocess_alloc(readwrite_ns_t* rw, barrier_t* bar, const uint16_t thnum
 /*  O : 0 if ok                                                                         */
 /*     -1 if error, and errno is set                                                    */
 /****************************************************************************************/
-int rwprocess_assign(thrw_t* reader, readwrite_ns_t* rw, barrier_t* bar, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
+int rwprocess_assign(thrw_t* reader, void* rw, barrier_t* bar, const uint16_t thnum, uint16_t* data, const uint16_t max, uint8_t nice_value){
     //check if the readwrite structure has been allocated
     if(!reader){
         errno = ENOMEM;
