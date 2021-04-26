@@ -7,7 +7,7 @@
 **      All threads will wait for a random amount of us before doing their task
 ** -------------------------------------------
 ** Made by Gilles Henrard
-** Last modified : 23/04/2021
+** Last modified : 26/04/2021
 */
 #include <stdlib.h>
 #include <pthread.h>
@@ -127,9 +127,9 @@ int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t*
         }
 
         //check if amount of threads is set with FIFO scheduling
-        //  (priorities are incremental at each thread, so no more than 19)
-        if(*sched == FIFO && *nbth >= 20){
-            print_error("usage : With the FIFO scheduling method, no more than 20 threads can be created");
+        //  (priorities are incremental at each thread, so no more than 98)
+        if(*sched == FIFO && *nbth >= 99){
+            print_error("usage : With the FIFO scheduling method, no more than 98 threads can be created");
             return -1;
         }
 
@@ -274,7 +274,7 @@ int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthr
         //if FIFO scheduling policy 
         if(sched == FIFO){
             //set the thread priority (descendant for each new thread)
-            param.sched_priority = 20 - i;
+            param.sched_priority = i + 1;
 
             //fixate parameters needed to the thread attributes
             if ((err = pthread_attr_setschedparam(attr, & param)) != 0) {
