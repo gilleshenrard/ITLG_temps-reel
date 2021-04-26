@@ -1,5 +1,5 @@
 # Temps Reel
-## Exercise 5 - Kindness
+## Exercise 5 - Threads priority
 ---
 ### 1. Intro
 The aim of this assignment is to re-implement the readers/writers assignment with condition variables, but using the no-starve no-priority algorithm,
@@ -12,9 +12,9 @@ The code for the current assignment can be found on [the GitHub repository](http
 Compilation and Use :
 ```shell
     make
-    bin/readerswriters nbthreads nbwriters maximum none
-    bin/readerswriters nbthreads nbwriters maximum fifo
-    bin/readerswriters nbthreads nbwriters maximum nice nice_readers nice_writers
+    bin/readerswriters prior|nostarve nbthreads nbwriters maximum none
+    bin/readerswriters prior|nostarve nbthreads nbwriters maximum fifo
+    bin/readerswriters prior|nostarve nbthreads nbwriters maximum nice nice_readers nice_writers
 
     make all
     make clean
@@ -34,25 +34,26 @@ Compilation and Use :
     int fifo_push(fifo_t* fifo, void* elem);
     void* fifo_pop(fifo_t* fifo);
 
-//readers-writers synchronisation functions (writers have priority)
+    //readers-writers synchronisation functions (writers have priority)
     int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex);
     int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex);
-    readwrite_t* rw_alloc();
-    int rw_free(readwrite_t* rw);
-    int rw_read(readwrite_t* rw, int (doAction)(void*), void* action_arg);
-    int rw_write(readwrite_t* rw, int (doAction)(void*), void* action_arg);
+    readwrite_pr_t* rwprior_alloc();
+    int rwprior_free(readwrite_pr_t* rw);
+    int rwprior_read(void* rw, int (doAction)(void*), void* action_arg);
+    int rwprior_write(void* rw, int (doAction)(void*), void* action_arg);
 
     //readers-writers synchronisation functions (writers don't starve)
     readwrite_ns_t* rwnostarve_alloc();
     int rwnostarve_free(readwrite_ns_t* rw);
-    int rwnostarve_read(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
-    int rwnostarve_write(readwrite_ns_t* rw, int (doAction)(void*), void* action_arg);
+    int rwnostarve_read(void* rw, int (doAction)(void*), void* action_arg);
+    int rwnostarve_write(void* rw, int (doAction)(void*), void* action_arg);
 ```
 
-### 3. Changes since V3
-* Readers, in addition to their random waiting time between loops, now wait between
-    100 ms and 400 ms during their critical section (to simulate long reading time)
-* The FIFO scheduling method has been implemented
+### 3. Changes since V4
+* Priorities are now set with incremented values so the writers have a lesser
+priority than the readers
+* A program argument has been added so the user can choose whether to use the
+writers-priority algorighm or the no starve writers one
 
 ### 4. To Do
 n/a
