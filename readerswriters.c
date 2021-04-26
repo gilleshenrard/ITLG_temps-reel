@@ -22,10 +22,11 @@
 #define WWAIT_MAX 1000000
 
 enum sched_type {NONE, FIFO, NICE};
+enum algo_type {NOSTARVE, WPRIOR};
 
-int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* sched, uint8_t* nice_r, uint8_t* nice_w);
+int check_args(int argc, char* argv[], uint8_t* algo, uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* sched, uint8_t* nice_r, uint8_t* nice_w);
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
-        const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w);
+        const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w, const uint8_t algo);
 int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthreads, const uint8_t sched);
 int threads_join(pthread_t threads[], thrw_t rw_array[], const uint16_t nbthreads);
 int free_rw(thrw_t* arrays, pthread_t* threads);
@@ -41,10 +42,10 @@ int main(int argc, char *argv[]){
     thrw_t* rw_array = NULL;
     pthread_t* th_array = NULL;
     uint16_t nbthreads = 0, nbwriters = 0, maximum = 0, data = 0;
-    uint8_t nice_r = NONICE, nice_w = NONICE, sched = NONE;
+    uint8_t nice_r = NONICE, nice_w = NONICE, sched = NONE, algo = NOSTARVE;
 
     //check program arguments and recover values given
-    if(check_args(argc, argv, &nbthreads, &nbwriters, &maximum, &sched, &nice_r, &nice_w) < 0){
+    if(check_args(argc, argv, &algo, &nbthreads, &nbwriters, &maximum, &sched, &nice_r, &nice_w) < 0){
         print_error("wrong amount or values set for program arguments");
 		exit(EXIT_FAILURE);
     }
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]){
 	srand(time(NULL));
 
     //initialise the readers/writers structures
-    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum, nbwriters, nice_r, nice_w) < 0){
+    if(init_rw(&rw_array, &th_array, nbthreads, (void*)&data, maximum, nbwriters, nice_r, nice_w, algo) < 0){
         print_error("main: error while initialising readers/writers");
         exit(EXIT_FAILURE);
     }
@@ -76,6 +77,7 @@ int main(int argc, char *argv[]){
 /****************************************************************************************/
 /*  I : Amount of arguments passed to the programs                          		    */
 /*      List of program arguments                                                       */
+/*      Identifier of the algorithm to use (writers priority or no starve writers)      */
 /*		Amount of threads to create     												*/
 /*      Amount of writers amongst the threads                                           */
 /*      Maximum value to reach by the readers/writers                                   */
@@ -86,31 +88,42 @@ int main(int argc, char *argv[]){
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
-int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* sched, uint8_t* nice_r, uint8_t* nice_w){
+int check_args(int argc, char* argv[], uint8_t* algo, uint16_t* nbth, uint16_t* nbwr, uint16_t* max, uint8_t* sched, uint8_t* nice_r, uint8_t* nice_w){
     //check if the fifo size and file name have been provided in the program arguments
-	if(argc != 5 && argc != 7){
+	if(argc != 6 && argc != 8){
         print_error("usage : ");
-        print_error("bin/readerswriters nbthreads nbwriters maximum none");
-        print_error("bin/readerswriters nbthreads nbwriters maximum fifo");
-        print_error("bin/readerswriters nbthreads nbwriters maximum nice nice_readers nice_writers");
+        print_error("bin/readerswriters prior|nostarve nbthreads nbwriters maximum none");
+        print_error("bin/readerswriters prior|nostarve nbthreads nbwriters maximum fifo");
+        print_error("bin/readerswriters prior|nostarve nbthreads nbwriters maximum nice nice_readers nice_writers");
 		return -1;
 	}
 	else
 	{
         //assign the parameters
-		*nbth = atoi(argv[1]);
-		*nbwr = atoi(argv[2]);
-		*max = atoi(argv[3]);
+		*nbth = atoi(argv[2]);
+		*nbwr = atoi(argv[3]);
+		*max = atoi(argv[4]);
+
+        //retrieve the algorithm type to use for the threads sync
+        //  (writers priority or no starve writers)
+        if(!strcmp(argv[1], "prior"))
+            *algo = WPRIOR;
+        else if(!strcmp(argv[1], "nostarve"))
+            *algo = NOSTARVE;
+        else{
+            print_error("usage : Unknown algorithm : %s", argv[1]);
+            return -1;
+        }
 
         //retrieve the threads priorisation method
-        if(!strcmp(argv[4], "none"))
+        if(!strcmp(argv[5], "none"))
             *sched = NONE;
-        else if(!strcmp(argv[4], "nice"))
+        else if(!strcmp(argv[5], "nice"))
             *sched = NICE;
-        else if(!strcmp(argv[4], "fifo"))
+        else if(!strcmp(argv[5], "fifo"))
             *sched = FIFO;
         else{
-            print_error("usage : Unknown priorisation method : %s", argv[4]);
+            print_error("usage : Unknown priorisation method : %s", argv[5]);
             return -1;
         }
 
@@ -135,8 +148,8 @@ int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t*
 
         //if nice scores have been given as arguments, assign them and check their values
         if(argc == 7){
-            *nice_r = atoi(argv[5]);
-            *nice_w = atoi(argv[6]);
+            *nice_r = atoi(argv[6]);
+            *nice_w = atoi(argv[7]);
 
             //score can't be negative due to uint8_t nature
             if(*nice_r > 20 || *nice_w > 20){
@@ -158,12 +171,13 @@ int check_args(int argc, char* argv[], uint16_t* nbth, uint16_t* nbwr, uint16_t*
 /*      Amount of writers amongst the threads                                           */
 /*      Nice score to assign to readers                                                 */
 /*      Nice score to assign to writers                                                 */
+/*      Identifier of the algorithm to use (writers priority or no starve writers)      */
 /*  P : Create the array of readers/writers with the proper values + the array of thr.  */  
 /*  O : 0 if no error                                                                   */
 /*	   -1 otherwise																		*/
 /****************************************************************************************/
 int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void* data, const uint16_t maximum,
-        const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w){
+        const uint16_t nbwriters, const uint8_t nice_r, const uint8_t nice_w, const uint8_t algo){
     readwrite_ns_t* rw = NULL;
     barrier_t* bar = NULL;
     uint16_t i = 0;
@@ -206,9 +220,12 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
         rwprocess_assign(&(*array)[i], rw, bar, i, data, maximum, nice_w);
         (*array)[i].wait_min = WWAIT_MIN;
         (*array)[i].wait_max = WWAIT_MAX;
-        (*array)[i].onRW = rwnostarve_write;
         (*array)[i].onCritical = updateData;
         (*array)[i].onPrint = print_noformat;
+        if(algo == WPRIOR)
+            (*array)[i].onRW = rwprior_write;
+        else
+            (*array)[i].onRW = rwnostarve_write;
 
         i++;
     }
@@ -218,9 +235,12 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
         rwprocess_assign(&(*array)[i], rw, bar, i, data, maximum, nice_r);
         (*array)[i].wait_min = RWAIT_MIN;
         (*array)[i].wait_max = RWAIT_MAX;
-        (*array)[i].onRW = rwnostarve_read;
         (*array)[i].onCritical = displayData;
         (*array)[i].onPrint = print_noformat;
+        if(algo == WPRIOR)
+            (*array)[i].onRW = rwprior_read;
+        else
+            (*array)[i].onRW = rwnostarve_read;
 
         i++;
     }
