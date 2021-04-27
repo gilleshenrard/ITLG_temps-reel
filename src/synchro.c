@@ -26,6 +26,7 @@
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
 barrier_t* barrier_alloc(const uint16_t nb){
+    pthread_mutexattr_t mut_attr = {0};
     barrier_t* bar = NULL;
     uint16_t errtmp = 0;
     
@@ -41,9 +42,26 @@ barrier_t* barrier_alloc(const uint16_t nb){
         errno = ENOMEM;
         return NULL;
     }
+
+    //initialise the attributes set to the mutex for
+    //      priority inheritance
+    errtmp = pthread_mutexattr_init(&mut_attr);
+    if(errtmp){
+        free(bar);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //set the priority inheritance protocol to the mutex
+    errtmp = pthread_mutexattr_setprotocol(&mut_attr, PTHREAD_PRIO_INHERIT);
+    if(errtmp){
+        free(bar);
+        errno = errtmp;
+        return NULL;
+    }
     
     //initialise the internal mutex
-    if(pthread_mutex_init(&bar->mutex, NULL) < 0){
+    if(pthread_mutex_init(&bar->mutex, &mut_attr) < 0){
         errtmp = errno;
         free(bar);
         errno = errtmp;
@@ -164,6 +182,7 @@ int barrier_sync(barrier_t* bar, int (doAction)(void*), void* action_arg){
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
 fifo_t* fifo_alloc(const uint16_t elemsz, const uint16_t amount){
+    pthread_mutexattr_t mut_attr = {0};
     fifo_t* fifo = NULL;
     uint16_t errtmp = 0;
 
@@ -178,9 +197,26 @@ fifo_t* fifo_alloc(const uint16_t elemsz, const uint16_t amount){
         errno = ENOMEM;
         return NULL;
     }
+
+    //initialise the attributes set to the mutex for
+    //      priority inheritance
+    errtmp = pthread_mutexattr_init(&mut_attr);
+    if(errtmp){
+        free(fifo);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //set the priority inheritance protocol to the mutex
+    errtmp = pthread_mutexattr_setprotocol(&mut_attr, PTHREAD_PRIO_INHERIT);
+    if(errtmp){
+        free(fifo);
+        errno = errtmp;
+        return NULL;
+    }
     
     //initialise the internal mutex
-    if(pthread_mutex_init(&fifo->mutex, NULL) < 0){
+    if(pthread_mutex_init(&fifo->mutex, &mut_attr) < 0){
         errtmp = errno;
         free(fifo);
         errno = errtmp;
@@ -376,6 +412,7 @@ int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex){
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
 readwrite_pr_t* rwprior_alloc(){
+    pthread_mutexattr_t mut_attr = {0};
     readwrite_pr_t* rw = NULL;
     int errtmp = 0;
 
@@ -386,8 +423,25 @@ readwrite_pr_t* rwprior_alloc(){
         return NULL;
     }
 
+    //initialise the attributes set to the mutex for
+    //      priority inheritance
+    errtmp = pthread_mutexattr_init(&mut_attr);
+    if(errtmp){
+        free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //set the priority inheritance protocol to the mutex
+    errtmp = pthread_mutexattr_setprotocol(&mut_attr, PTHREAD_PRIO_INHERIT);
+    if(errtmp){
+        free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
     //initialise the internal mutex which blocks the writers
-    if(pthread_mutex_init(&rw->readSwitch.mutex, NULL) < 0){
+    if(pthread_mutex_init(&rw->readSwitch.mutex, &mut_attr) < 0){
         errtmp = errno;
         free(rw);
         errno = errtmp;
@@ -395,7 +449,7 @@ readwrite_pr_t* rwprior_alloc(){
     }
 
     //initialise the internal mutex which blocks the readers
-    if(pthread_mutex_init(&rw->writeSwitch.mutex, NULL) < 0){
+    if(pthread_mutex_init(&rw->writeSwitch.mutex, &mut_attr) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->readSwitch.mutex);
         free(rw);
@@ -404,7 +458,7 @@ readwrite_pr_t* rwprior_alloc(){
     }
 
     //initialise the readers blocked conditional variable
-    if(pthread_mutex_init(&rw->noReaders, NULL) < 0){
+    if(pthread_mutex_init(&rw->noReaders, &mut_attr) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->writeSwitch.mutex);
         pthread_mutex_destroy (&rw->readSwitch.mutex);
@@ -414,7 +468,7 @@ readwrite_pr_t* rwprior_alloc(){
     }
 
     //initialise the writers blocked conditional variable
-    if(pthread_mutex_init(&rw->noWriters, NULL) < 0){
+    if(pthread_mutex_init(&rw->noWriters, &mut_attr) < 0){
         errtmp = errno;
         rwprior_free(rw);
         errno = errtmp;
@@ -514,6 +568,7 @@ int rwprior_write(void* rdwt, int (doAction)(void*), void* action_arg){
 /*      On error, NULL is returned and errno is set                                     */
 /****************************************************************************************/
 readwrite_ns_t* rwnostarve_alloc(){
+    pthread_mutexattr_t mut_attr = {0};
     readwrite_ns_t* rw = NULL;
     int errtmp = 0;
 
@@ -524,8 +579,25 @@ readwrite_ns_t* rwnostarve_alloc(){
         return NULL;
     }
 
+    //initialise the attributes set to the mutex for
+    //      priority inheritance
+    errtmp = pthread_mutexattr_init(&mut_attr);
+    if(errtmp){
+        free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
+    //set the priority inheritance protocol to the mutex
+    errtmp = pthread_mutexattr_setprotocol(&mut_attr, PTHREAD_PRIO_INHERIT);
+    if(errtmp){
+        free(rw);
+        errno = errtmp;
+        return NULL;
+    }
+
     //initialise the internal mutex which blocks the writers
-    if(pthread_mutex_init(&rw->readSwitch.mutex, NULL) < 0){
+    if(pthread_mutex_init(&rw->readSwitch.mutex, &mut_attr) < 0){
         errtmp = errno;
         free(rw);
         errno = errtmp;
@@ -533,7 +605,7 @@ readwrite_ns_t* rwnostarve_alloc(){
     }
 
     //initialise the turnstile mutex
-    if(pthread_mutex_init(&rw->turnstile, NULL) < 0){
+    if(pthread_mutex_init(&rw->turnstile, &mut_attr) < 0){
         errtmp = errno;
         pthread_mutex_destroy (&rw->readSwitch.mutex);
         free(rw);
@@ -542,7 +614,7 @@ readwrite_ns_t* rwnostarve_alloc(){
     }
 
     //initialise the readers room empty mutex
-    if(pthread_mutex_init(&rw->roomEmpty, NULL) < 0){
+    if(pthread_mutex_init(&rw->roomEmpty, &mut_attr) < 0){
         errtmp = errno;
         rwnostarve_free(rw);
         errno = errtmp;
