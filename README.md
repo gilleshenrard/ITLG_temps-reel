@@ -54,9 +54,11 @@ Compilation and Use :
 priority than the readers
 * A program argument has been added so the user can choose whether to use the
 writers-priority algorighm or the no starve writers one
+* The priority inheritance protocol has been implemented for all mutexes
 
 ### 4. To Do
 n/a
 
 ### 5. Known issues
-n/a
+Readers/writers writing procedure seems to block on roomEmpty mutex locking,
+even though it is properly released by the last reader at the lightswitch
