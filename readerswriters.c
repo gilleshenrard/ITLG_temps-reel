@@ -298,7 +298,7 @@ int threads_launch(pthread_t th_array[], thrw_t rw_array[], const uint16_t nbthr
         //if FIFO scheduling policy 
         if(sched == FIFO){
             //set the thread priority (descendant for each new thread)
-            param.sched_priority = i + 1;
+            param.sched_priority = nbthreads - i;
 
             //fixate parameters needed to the thread attributes
             if ((err = pthread_attr_setschedparam(attr, & param)) != 0) {
