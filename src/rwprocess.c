@@ -9,7 +9,6 @@
 #include "rwprocess.h"
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #include <pthread.h>
 
@@ -135,7 +134,7 @@ void *thread_handler(void *reader){
         //perform either the reader action, or the writer action
         ret = (*rd->onRW)(rd->rw, rd->onCritical, rd);
         if(ret){
-            rd->onPrint("thread %u : %s", rd->thNum, strerror(ret));
+            rd->onPrint("thread %u encountered an error", rd->thNum);
             pthread_exit(NULL);
         }
 

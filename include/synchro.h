@@ -29,8 +29,9 @@ typedef struct{
 
 //lightswitch structure used in readers/writers structures
 typedef struct{
-    uint16_t        counter;        //counter to the amount of threads in the lightswitch
-    pthread_mutex_t mutex;          //mutex allowing synchronisation of the lightswitch
+    uint16_t        counter;                //counter to the amount of threads in the lightswitch
+    pthread_mutex_t mutex;                  //mutex allowing synchronisation of the lightswitch
+    void            (*onPrint)(char*, ...); //function used to print errors on screen
 }lightswitch_t;
 
 //readers/writers structure (writers have priority)
@@ -72,5 +73,7 @@ readwrite_ns_t* rwnostarve_alloc();
 int rwnostarve_free(readwrite_ns_t* rw);
 int rwnostarve_read(void* rw, int (doAction)(void*), void* action_arg);
 int rwnostarve_write(void* rw, int (doAction)(void*), void* action_arg);
+
+void prt_error(const int errnb, const char fct_name[], const char custom_msg[], void (*onPrint)(char*, ...));
 
 #endif

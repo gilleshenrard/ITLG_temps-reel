@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
 #include "synchro.h"
 
@@ -363,27 +364,38 @@ void* fifo_pop(fifo_t* fifo){
 /*  P : Lock the lightswitch, allowing either the readers to block the writers while    */
 /*          they're working, or the opposite                                            */
 /*  O : 0 if ok                                                                         */
-/*     -1 if error (or error code returned by pthread functions)                        */
+/*     -1 if error                                                                      */
 /****************************************************************************************/
 int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex){
     int err = 0;
 
-    if(!light || !mutex)                        //make sure parameters are not NULL
+    //make sure parameters are not NULL
+    if(!light || !mutex)
         return -1;
 
-    err = pthread_mutex_lock(&light->mutex);    //current thread locks the switch mutex
-    if(err){return err;}
+    //current thread locks the switch mutex
+    err = pthread_mutex_lock(&light->mutex);
+    if(err){
+        prt_error(err, "lightswitch_lock", "internal mutex acquisition", light->onPrint);
+        return -1;
+    }
 
-        if(++light->counter == 1){               //first thread locks the external mutex
+        //first thread locks the external mutex
+        if(++light->counter == 1){
             err = pthread_mutex_lock(mutex);
             if(err){
+                prt_error(err, "lightswitch_lock", "room empty locking", light->onPrint);
                 pthread_mutex_unlock(&light->mutex);
-                return err;
+                return -1;
             }
         }
 
-    err = pthread_mutex_unlock(&light->mutex);  //current thread releases the switch mutex
-    if(err){return err;}
+    //current thread releases the switch mutex
+    err = pthread_mutex_unlock(&light->mutex);
+    if(err){
+        prt_error(err, "lightswitch_lock", "internal mutex releasing", light->onPrint);
+        return -1;
+    }
     
     return 0;
 }
@@ -393,7 +405,7 @@ int lightswitch_lock(lightswitch_t* light, pthread_mutex_t* mutex){
 /*      mutex used to unlock threads                                                    */
 /*  P : Unlock the lightswitch, to release the readers/writers which had been locked    */
 /*  O : 0 if ok                                                                         */
-/*     -1 if error (or error code returned by pthread functions)                        */
+/*     -1 if error                                                                      */
 /****************************************************************************************/
 int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex){
     int err = 0;
@@ -402,19 +414,29 @@ int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex){
     if(!light || !mutex)
         return -1;
 
-    err = pthread_mutex_lock(&light->mutex);          //current thread locks the switch mutex
-    if(err){return err;}
+    //current thread locks the switch mutex
+    err = pthread_mutex_lock(&light->mutex);
+    if(err){
+        prt_error(err, "lightswitch_unlock", "internal mutex acquisition", light->onPrint);
+        return -1;
+    }
         
-        if(!--light->counter){                        //last thread unlocks the external mutex
+        //last thread unlocks the external mutex
+        if(!--light->counter){
             err = pthread_mutex_unlock(mutex);
             if(err){
+                prt_error(err, "lightswitch_unlock", "room empty unlocking", light->onPrint);
                 pthread_mutex_unlock(&light->mutex);
-                return err;
+                return -1;
             }
         }
     
-    err = pthread_mutex_unlock(&light->mutex);        //current thread releases the switch mutex
-    if(err){return err;}
+    //current thread releases the switch mutex
+    err = pthread_mutex_unlock(&light->mutex);
+    if(err){
+        prt_error(err, "lightswitch_unlock", "internal mutex releasing", light->onPrint);
+        return -1;
+    }
     
     return 0;
 }
@@ -680,20 +702,41 @@ int rwnostarve_read(void* rdwt, int (doAction)(void*), void* action_arg){
     readwrite_ns_t* rw = (readwrite_ns_t*)rdwt;
     int ret = 0, err = 0;
 
-    err = pthread_mutex_lock(&rw->turnstile);               //current reader waits for the turnstile to be available
-    if(err){return err;}
+    //current reader waits for the turnstile to be available
+    err = pthread_mutex_lock(&rw->turnstile);
+    if(err){
+        prt_error(err, "rwnostarve_read", "turnstile acquisition", rw->readSwitch.onPrint);
+        return err;
+    }
     
-    err = pthread_mutex_unlock(&rw->turnstile);             //current reader releases the turnstile for the next thread
-    if(err){return err;}
+    //current reader releases the turnstile for the next thread
+    err = pthread_mutex_unlock(&rw->turnstile);
+    if(err){
+        prt_error(err, "rwnostarve_read", "turnstile releasing", rw->readSwitch.onPrint);
+        return err;
+    }
 
-    err = lightswitch_lock(&rw->readSwitch, &rw->roomEmpty);      //first reader locks all the writers
-    if(err){return err;}
-        
-        if(doAction)                                        //current reader performs the critical section
+    //first reader locks all the writers
+    err = lightswitch_lock(&rw->readSwitch, &rw->roomEmpty);
+    if(err < 0){
+        if(rw->readSwitch.onPrint)
+            (*rw->readSwitch.onPrint)("rwnostarve_read : lightswitch locking error");
+        return err;
+    }
+
+
+        //current reader performs the critical section
+        if(doAction)
             ret = (*doAction)(action_arg);
-    
-    err = lightswitch_unlock(&rw->readSwitch, &rw->roomEmpty);    //last reader unlocks the writers
-    if(err){return err;}
+
+
+    //last reader unlocks the writers
+    err = lightswitch_unlock(&rw->readSwitch, &rw->roomEmpty);
+    if(err < 0){
+        if(rw->readSwitch.onPrint)
+            (*rw->readSwitch.onPrint)("rwnostarve_read : lightswitch unlocking error");
+        return err;
+    }
 
     return ret;
 }
@@ -710,18 +753,59 @@ int rwnostarve_write(void* rdwt, int (doAction)(void*), void* action_arg){
     readwrite_ns_t* rw = (readwrite_ns_t*)rdwt;
     int ret = 0, err = 0;
 
-    err = pthread_mutex_lock(&rw->turnstile);                     //current writer waits for the turnstile to be available
-    if(err){return err;}
-    err = pthread_mutex_lock(&rw->roomEmpty);                     //current writer waits for all the current readers to be done
-    if(err){return err;}
+    //current writer waits for the turnstile to be available
+    err = pthread_mutex_lock(&rw->turnstile);
+    if(err){
+        prt_error(err, "rwnostarve_write", "turnstile acquisition", rw->readSwitch.onPrint);
+        return err;
+    }
 
-    if(doAction)                                            //current writer performs the critical action
-        ret = (*doAction)(action_arg);
+    //current writer waits for all the current readers to be done
+    err = pthread_mutex_lock(&rw->roomEmpty);
+    if(err){
+        prt_error(err, "rwnostarve_write", "room empty mutex acquisition", rw->readSwitch.onPrint);
+        return err;
+    }
 
-    err = pthread_mutex_unlock(&rw->turnstile);                   //current writer releases the turnstile
-    if(err){return err;}
-    err = pthread_mutex_unlock(&rw->roomEmpty);                   //current writer releases the next writer
-    if(err){return err;}
+
+        //current writer performs the critical action
+        if(doAction)
+            ret = (*doAction)(action_arg);
+
+
+    //current writer releases the turnstile
+    err = pthread_mutex_unlock(&rw->turnstile);
+    if(err){
+        prt_error(err, "rwnostarve_write", "turnstile releasing", rw->readSwitch.onPrint);
+        return err;
+    }
+
+    //current writer releases the next writer
+    err = pthread_mutex_unlock(&rw->roomEmpty);
+    if(err < 0){
+        prt_error(err, "rwnostarve_write", "room empty mutex releasing", rw->readSwitch.onPrint);
+        return err;
+    }
 
     return ret;
+}
+
+/****************************************************************************************/
+/*  I : Error code                                                                      */
+/*      Name of the function in which the error occurred (invisible if NULL)            */
+/*      Custom message to indicate what the instruction attempted to do (invisible if   */
+/*          NULL)                                                                       */
+/*      Function used to print the error message                                        */
+/*  P : Print an error message with the function name and a custom message using the    */
+/*          reentrant version of strerror()                                             */
+/*  O : /                                                                               */
+/****************************************************************************************/
+void prt_error(const int errnb, const char fct_name[], const char custom_msg[], void (*onPrint)(char*, ...)){
+    char buf[64] = {0};
+
+    if(onPrint)
+        (*onPrint)("%s : %s : %s"
+                    , (fct_name ? fct_name : "")
+                    , (custom_msg ? custom_msg : "")
+                    , strerror_r(errnb, buf, sizeof(buf)));
 }

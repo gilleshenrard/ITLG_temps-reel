@@ -183,10 +183,15 @@ int init_rw(thrw_t** array, pthread_t** threads, const uint16_t nbthreads, void*
     uint16_t i = 0;
 
     //allocate a readwrite structure shared between all the threads
-    if(algo == WPRIOR)
+    if(algo == WPRIOR){
         rw = rwprior_alloc();
-    else
+        ((readwrite_pr_t*)rw)->readSwitch.onPrint = print_error;
+        ((readwrite_pr_t*)rw)->writeSwitch.onPrint = print_error;
+    }
+    else{
         rw = rwnostarve_alloc();
+        ((readwrite_ns_t*)rw)->readSwitch.onPrint = print_error;
+    }
     if(!rw){
         print_error("init_rw : %s", strerror(errno));
         return -1;
