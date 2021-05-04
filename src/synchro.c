@@ -804,9 +804,11 @@ int rwnostarve_write(void* rdwt, int (doAction)(void*), void* action_arg){
 void prt_error(const int errnb, const char fct_name[], const char custom_msg[], void (*onPrint)(char*, ...)){
     char buf[64] = {0};
 
-    if(onPrint)
+    if(onPrint){
+        strerror_r(errnb, buf, sizeof(buf));
         (*onPrint)("%s : %s : %s"
                     , (fct_name ? fct_name : "")
                     , (custom_msg ? custom_msg : "")
-                    , strerror_r(errnb, buf, sizeof(buf)));
+                    , buf);
+    }
 }
