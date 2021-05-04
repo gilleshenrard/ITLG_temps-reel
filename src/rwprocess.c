@@ -9,6 +9,7 @@
 #include "rwprocess.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <pthread.h>
 
@@ -118,8 +119,10 @@ void *thread_handler(void *reader){
     if(rd->nice_value != NONICE){
         errno = 0;
         ret = nice(rd->nice_value);
-        if(ret != rd->nice_value || errno != 0)
+        if(ret != rd->nice_value || errno != 0){
             rd->onPrint("thread %u : error on assigning nice (value : %d)", rd->thNum, ret);
+                pthread_exit(NULL);
+        }
     }
     //wait for all readers and writers to be at the barrier
     barrier_sync(rd->barrier, NULL, NULL);
@@ -130,7 +133,12 @@ void *thread_handler(void *reader){
         usleep(t);
 
         //perform either the reader action, or the writer action
-        (*rd->onRW)(rd->rw, rd->onCritical, rd);
+        ret = (*rd->onRW)(rd->rw, rd->onCritical, rd);
+        if(ret){
+            rd->onPrint("thread %u : %s", rd->thNum, strerror(ret));
+            pthread_exit(NULL);
+        }
+
     }while (*rd->data < rd->max);
 
     pthread_exit(NULL);
