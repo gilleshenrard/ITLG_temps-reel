@@ -427,6 +427,7 @@ int lightswitch_unlock(lightswitch_t* light, pthread_mutex_t* mutex){
             if(err){
                 prt_error(err, "lightswitch_unlock", "room empty unlocking", light->onPrint);
                 pthread_mutex_unlock(&light->mutex);
+                light->counter++;
                 return -1;
             }
         }
