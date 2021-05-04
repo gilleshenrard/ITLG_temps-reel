@@ -30,5 +30,5 @@ ball:
 .PHONY: clean
 clean:
 	@ echo "cleaning binaries"
-	@ rm -rf $(cbin)/*
+	@ rm -rf $(cbin)
 	@ $(MAKE) -f build.mk -C$(clib) clean
