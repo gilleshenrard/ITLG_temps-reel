@@ -1,9 +1,9 @@
 # Temps Reel
-## Exercise 5 - Threads priority
+## Assignment 5 - Threads priority
 ---
 ### 1. Intro
 The aim of this assignment is to re-implement the readers/writers assignment with condition variables, but using the no-starve no-priority algorithm,
-in order to test the threads kindness (courtoisie in French).
+in order to test the threads kindness (courtoisie in French) and threads real-time priority.
 The writers will therefore have no priority over the readers at first, and the priorities will be given as a program argument.
 It is based on the code of the readers/writers' code in the  [assignment 4](https://github.com/gilleshenrard/ITLG_temps-reel/tree/assignment4) 
 
@@ -49,16 +49,14 @@ Compilation and Use :
     int rwnostarve_write(void* rw, int (doAction)(void*), void* action_arg);
 ```
 
-### 3. Changes since V4
-* Priorities are now set with incremented values so the writers have a lesser
-priority than the readers
-* A program argument has been added so the user can choose whether to use the
-writers-priority algorighm or the no starve writers one
-* The priority inheritance protocol has been implemented for all mutexes
+### 3. Changes since part C V2
+* Logging has been improved to care for errors while executing the code
 
 ### 4. To Do
 n/a
 
 ### 5. Known issues
-Readers/writers writing procedure seems to block on roomEmpty mutex locking,
-even though it is properly released by the last reader at the lightswitch
+Readers/writers writing procedure seems to block on roomEmpty mutex locking
+because the last reader (supposed to release the mutex) does not have the
+ownership of the mutex. This happens only with roomEmpty, and only with
+priority inheritance.
